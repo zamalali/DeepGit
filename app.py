@@ -16,11 +16,10 @@ from typing import List, Dict, Tuple
 from pydantic import BaseModel, ValidationError
 import re
 import streamlit as st
-
 os.environ["OPENAI_API_KEY"] = "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" # Get your API key from https://platform.openai.com/account/api-keys
 os.environ["LLAMA_CLOUD_API_KEY"] = "llx-XtDBMhN3DaQkDIKGSbdFSmu77xp7WvmG0UPFssiGaiSw1QvZ" # Get your API key from https://cloud.llamaindex.ai/api-key
-# Initialize LLM and Embedding Model
 
+# Initialize LLM and Embedding Model
 llm = OpenAI(model='gpt-4o-mini')
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -158,7 +157,10 @@ def llm_score_resume(task_description, resume_text):
     except (IndexError, ValueError, AttributeError):
         score = 50  # Default fallback score
 
-    return response_text.strip(), score
+    # Make the response concise and markdown-friendly
+    clean_response = "\n- " + "\n- ".join([line.strip() for line in response_text.splitlines() if line.strip()])
+
+    return clean_response, score
 
 def combine_scores(similarity_score, llm_score, weights=(0.6, 0.4)):
     return weights[0] * similarity_score + weights[1] * (llm_score / 100)
