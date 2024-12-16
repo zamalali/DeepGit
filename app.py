@@ -90,7 +90,7 @@ def parse_files_concurrently(pdf_files):
             return []
 
     with ThreadPoolExecutor(max_workers=8) as executor:  # Use more threads for concurrent processing
-        results = list(executor.map(parse_file, pdf_file))
+        results = list(executor.map(parse_file, pdf_files))
 
     # Flatten results
     documents = [doc for docs in results if docs for doc in docs]
