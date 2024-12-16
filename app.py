@@ -125,14 +125,21 @@ def compute_similarity(task_description, documents):
 
     similarities = cosine_similarity([task_embedding], resume_embeddings).flatten()
     top_indices = similarities.argsort()[-10:][::-1]  # Get top 10 matches for further refinement
-    return [(documents[i], similarities[i]) for i in top_indices]
+    seen_files = set()
+    unique_candidates = []
+    for i in top_indices:
+        file_path = documents[i].metadata.get('filepath', 'Unknown Filepath')
+        if file_path not in seen_files:
+            seen_files.add(file_path)
+            unique_candidates.append((documents[i], similarities[i]))
+    return unique_candidates
 
 def llm_score_resume(task_description, resume_text):
     prompt = f"""
     Based on the job description:
     {task_description}
 
-    How well does the following resume match the job description? Provide a relevance score (0-100):
+    Provide a detailed analysis of how the following resume matches the job description, and give a relevance score (0-100):
     {resume_text}
     """
     response = llm.complete(prompt)
@@ -150,7 +157,7 @@ def llm_score_resume(task_description, resume_text):
     except (IndexError, ValueError, AttributeError):
         score = 50  # Default fallback score
 
-    return score
+    return response_text, score
 
 def combine_scores(similarity_score, llm_score, weights=(0.6, 0.4)):
     return weights[0] * similarity_score + weights[1] * (llm_score / 100)
@@ -158,9 +165,9 @@ def combine_scores(similarity_score, llm_score, weights=(0.6, 0.4)):
 def rank_candidates(task_description, candidates):
     ranked_candidates = []
     for candidate, similarity_score in candidates:
-        llm_score = llm_score_resume(task_description, candidate.text)
+        detailed_response, llm_score = llm_score_resume(task_description, candidate.text)
         combined_score = combine_scores(similarity_score, llm_score)
-        ranked_candidates.append((candidate.metadata.get('filepath', 'Unknown Filepath'), combined_score))
+        ranked_candidates.append((candidate.metadata.get('filepath', 'Unknown Filepath'), combined_score, detailed_response))
 
     ranked_candidates.sort(key=lambda x: x[1], reverse=True)
     return ranked_candidates
@@ -190,8 +197,9 @@ if st.button("Find Matches"):
             # Step 5: Display results
             if final_ranked_candidates:
                 st.markdown("### Top Matching Resumes")
-                for candidate, score in final_ranked_candidates:
-                    st.markdown(f"- **{candidate}**: Score **{score:.2f}**")
+                for candidate, score, detailed_response in final_ranked_candidates:
+                    st.markdown(f"- **{candidate}**: Combined Score **{score:.2f}**")
+                    st.markdown(f"#### Detailed Analysis:\n{detailed_response}")
             else:
                 st.warning("No matching resumes found.")
     else:
