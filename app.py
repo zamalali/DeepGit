@@ -16,10 +16,7 @@ from typing import List, Dict, Tuple
 from pydantic import BaseModel, ValidationError
 import re
 import streamlit as st
-import os
 
-os.environ["OPENAI_API_KEY"] = "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" # Get your API key from https://platform.openai.com/account/api-keys
-os.environ["LLAMA_CLOUD_API_KEY"] = "llx-XtDBMhN3DaQkDIKGSbdFSmu77xp7WvmG0UPFssiGaiSw1QvZ" # Get your API key from https://cloud.llamaindex.ai/api-key
 # Initialize LLM and Embedding Model
 llm = OpenAI(model='gpt-4o-mini')
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -198,13 +195,28 @@ if st.button("Find Matches"):
             # Step 5: Display results
             if final_ranked_candidates:
                 st.markdown("### Top Matching Resumes")
-                for i, (candidate, score, detailed_response) in enumerate(final_ranked_candidates):
-                    if i < 3:  # Top 3 with detailed explanations
-                        st.markdown(f"#### **{candidate}**")
-                        st.markdown(f"- **Score:** {score:.2f}")
-                        st.markdown(f"- **Analysis:** {detailed_response}")
-                    else:  # Remaining resumes as file paths only
-                        st.markdown(f"- **{candidate}** (Score: {score:.2f})")
+
+                # Prepare data for top 3 resumes
+                top_3_data = []
+                for i, (candidate, score, detailed_response) in enumerate(final_ranked_candidates[:3]):
+                    top_3_data.append({
+                        "File Path": candidate,
+                        "Score": f"{score:.2f}",
+                        "Analysis": detailed_response
+                    })
+
+                # Display top 3 matches in a table
+                st.markdown("#### Top 3 Matches")
+                st.table(top_3_data)
+
+                # Display remaining resumes
+                st.markdown("#### Other Matches")
+                remaining_data = [{"File Path": candidate, "Score": f"{score:.2f}"} 
+                                  for candidate, score, _ in final_ranked_candidates[3:]]
+                if remaining_data:
+                    st.table(remaining_data)
+                else:
+                    st.info("No additional resumes matched.")
             else:
                 st.warning("No matching resumes found.")
     else:
