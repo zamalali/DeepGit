@@ -16,9 +16,9 @@ from typing import List, Dict, Tuple
 from pydantic import BaseModel, ValidationError
 import re
 import streamlit as st
+
 os.environ["OPENAI_API_KEY"] = "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" # Get your API key from https://platform.openai.com/account/api-keys
 os.environ["LLAMA_CLOUD_API_KEY"] = "llx-XtDBMhN3DaQkDIKGSbdFSmu77xp7WvmG0UPFssiGaiSw1QvZ" # Get your API key from https://cloud.llamaindex.ai/api-key
-
 # Initialize LLM and Embedding Model
 llm = OpenAI(model='gpt-4o-mini')
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -90,7 +90,7 @@ def parse_files_concurrently(pdf_files):
             return []
 
     with ThreadPoolExecutor(max_workers=8) as executor:  # Use more threads for concurrent processing
-        results = list(executor.map(parse_file, pdf_files))
+        results = list(executor.map(parse_file, pdf_file))
 
     # Flatten results
     documents = [doc for docs in results if docs for doc in docs]
@@ -111,7 +111,7 @@ async def get_document_upload(doc, llm):
             'skills': extracted_metadata.skills,
             'country': extracted_metadata.country,
             'domain': extracted_metadata.domain,
-            'file_path': file_path
+            'file_path': os.path.basename(file_path)  # Simplify file path
         }
     )
 
@@ -128,7 +128,7 @@ def compute_similarity(task_description, documents):
     seen_files = set()
     unique_candidates = []
     for i in similarities.argsort()[-10:][::-1]:  # Get top 10 matches
-        file_path = documents[i].metadata.get('filepath', 'Unknown Filepath')
+        file_path = os.path.basename(documents[i].metadata.get('filepath', 'Unknown Filepath'))  # Simplify file path
         if file_path not in seen_files:
             seen_files.add(file_path)
             unique_candidates.append((documents[i], similarities[i]))
@@ -158,7 +158,7 @@ def llm_score_resume(task_description, resume_text):
         score = 50  # Default fallback score
 
     # Make the response concise and markdown-friendly
-    clean_response = "\n- " + "\n- ".join([line.strip() for line in response_text.splitlines() if line.strip()])
+    clean_response = "\n\n".join([f"- {line.strip()}" for line in response_text.splitlines() if line.strip()])
 
     return clean_response, score
 
@@ -170,7 +170,7 @@ def rank_candidates(task_description, candidates):
     for candidate, similarity_score in candidates:
         detailed_response, llm_score = llm_score_resume(task_description, candidate.text)
         combined_score = combine_scores(similarity_score, llm_score)
-        ranked_candidates.append((candidate.metadata.get('filepath', 'Unknown Filepath'), combined_score, detailed_response))
+        ranked_candidates.append((os.path.basename(candidate.metadata.get('filepath', 'Unknown Filepath')), combined_score, detailed_response))  # Simplify file path
 
     ranked_candidates.sort(key=lambda x: x[1], reverse=True)
     return ranked_candidates
