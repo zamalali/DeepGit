@@ -204,28 +204,29 @@ if st.button("Find Matches"):
             if final_ranked_candidates:
                 st.markdown("### Top Matching Resumes")
 
-                # Prepare data for top 3 resumes
-                top_3_data = []
-                for i, (candidate, score, detailed_response) in enumerate(final_ranked_candidates[:3]):
-                    top_3_data.append({
-                        "File Path": candidate,
-                        "Score": f"{score:.2f}",
-                        "Analysis": detailed_response
-                    })
-
-                # Display top 3 matches in a table
+                # Display top 3 matches with Markdown rendering
                 st.markdown("#### Top 3 Matches")
-                st.table(top_3_data)
+                for i, (candidate, score, detailed_response) in enumerate(final_ranked_candidates[:3]):
+                    formatted_score = f"{score * 100:.0f}%"  # Convert score to percentage
+                    st.markdown(f"""
+                    **{i+1}. {candidate}**  
+                    - **Score**: {formatted_score}  
+                    - **Analysis**:  
+                      {detailed_response.replace('-', '- ').replace('\n', '\n  ')}
+                    ---
+                    """)
 
-                # Display remaining resumes
+                # Display remaining resumes with simplified output
                 st.markdown("#### Other Matches")
-                remaining_data = [{"File Path": candidate, "Score": f"{score:.2f}"} 
-                                  for candidate, score, _ in final_ranked_candidates[3:]]
-                if remaining_data:
-                    st.table(remaining_data)
-                else:
-                    st.info("No additional resumes matched.")
+                for i, (candidate, score, _) in enumerate(final_ranked_candidates[3:], start=4):
+                    formatted_score = f"{score * 100:.0f}%"  # Convert score to percentage
+                    st.markdown(f"""
+                    **{i}. {candidate}**  
+                    - **Score**: {formatted_score}  
+                    ---
+                    """)
             else:
                 st.warning("No matching resumes found.")
     else:
         st.error("Please upload resumes and provide a task description.")
+
