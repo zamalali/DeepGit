@@ -77,7 +77,7 @@ async def get_metadata(text):
         return Metadata(domain="", skills=[], country=[])
 
 def parse_files_concurrently(pdf_files):
-    parser = LlamaParse(result_type="markdown", num_workers=8, verbose=True)  # Increase number of workers for speed
+    parser = LlamaParse(result_type="markdown", num_workers=4, verbose=True)  # Increase number of workers for speed
 
     def parse_file(pdf_file):
         try:
