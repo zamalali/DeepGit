@@ -16,7 +16,10 @@ from typing import List, Dict, Tuple
 from pydantic import BaseModel, ValidationError
 import re
 import streamlit as st
-
+# Environment Fixes
+torch.set_num_threads(4)  # Limit PyTorch threads to avoid overutilization
+os.environ["PYTORCH_JIT"] = "0"  # Disable JIT optimization causing the torch.classes issue
+os.environ["TOKENIZERS_PARALLELISM"] = "false"  # Disable tokenizer parallelism errors
 os.environ["OPENAI_API_KEY"] = "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" # Get your API key from https://platform.openai.com/account/api-keys
 os.environ["LLAMA_CLOUD_API_KEY"] = "llx-XtDBMhN3DaQkDIKGSbdFSmu77xp7WvmG0UPFssiGaiSw1QvZ" # Get your API key from https://cloud.llamaindex.ai/api-key
 # Initialize LLM and Embedding Model
