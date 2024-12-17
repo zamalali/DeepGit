@@ -204,29 +204,26 @@ if st.button("Find Matches"):
             if final_ranked_candidates:
                 st.markdown("### Top Matching Resumes")
 
-                # Display top 3 matches with Markdown rendering
+                # Display top 3 matches with clean Markdown
                 st.markdown("#### Top 3 Matches")
                 for i, (candidate, score, detailed_response) in enumerate(final_ranked_candidates[:3]):
                     formatted_score = f"{score * 100:.0f}%"  # Convert score to percentage
-                    st.markdown(f"""
-                    **{i+1}. {candidate}**  
-                    - **Score**: {formatted_score}  
-                    - **Analysis**:  
-                      {detailed_response.replace('-', '- ').replace('\n', '\n  ')}
-                    ---
-                    """)
+                    
+                    # Render each part cleanly using st.markdown
+                    st.markdown(f"**{i+1}. {candidate}**")
+                    st.markdown(f"- **Score**: {formatted_score}")
+                    st.markdown(f"- **Analysis:**")
+                    st.markdown(detailed_response, unsafe_allow_html=True)  # Fully render Markdown
+                    st.markdown("---")
 
                 # Display remaining resumes with simplified output
                 st.markdown("#### Other Matches")
                 for i, (candidate, score, _) in enumerate(final_ranked_candidates[3:], start=4):
-                    formatted_score = f"{score * 100:.0f}%"  # Convert score to percentage
-                    st.markdown(f"""
-                    **{i}. {candidate}**  
-                    - **Score**: {formatted_score}  
-                    ---
-                    """)
+                    formatted_score = f"{score * 100:.0f}%"
+                    st.markdown(f"**{i}. {candidate}**")
+                    st.markdown(f"- **Score**: {formatted_score}")
+                    st.markdown("---")
             else:
                 st.warning("No matching resumes found.")
     else:
         st.error("Please upload resumes and provide a task description.")
-
