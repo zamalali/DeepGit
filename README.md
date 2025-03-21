@@ -1,18 +1,18 @@
 <h1 align="center">
-  <img src="https://img.icons8.com/?size=100&id=118557&format=png&color=000000" width="72" style="vertical-align: middle;"/> DeepHub
+  <img src="https://img.icons8.com/?size=100&id=118557&format=png&color=000000" width="72" style="vertical-align: middle;"/> DeepGit
 </h1>
 
 <p align="center">
   <img src="assets/workflow.png" width="120%" alt="Workflow Diagram"/>
 </p>
 
-## DeepHub
+## DeepGit
 
-**DeepHub** is an autonomous agent designed to perform deep semantic research across GitHub repositories. It intelligently searches, analyzes, and ranks repositories based on user intent — even for less-known but highly relevant tools.
+**DeepGit** is an autonomous agent designed to perform deep semantic research across GitHub repositories. It intelligently searches, analyzes, and ranks repositories based on user intent — even for less-known but highly relevant tools.
 
 ## ⚙️ How It Works — Agentic Workflow
 
-When a user submits a query, **DeepHub Orchestrator Agent** takes over. Here's the breakdown of the pipeline:
+When a user submits a query, **DeepGit Orchestrator Agent** takes over. Here's the breakdown of the pipeline:
 
 ### 🔹 1. Query Expansion Tool
 Enhances vague user queries using language models to add specificity and context — enabling more accurate downstream retrieval.
