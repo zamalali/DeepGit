@@ -6,7 +6,7 @@
   <img src="assets/workflow.png" width="60%" alt="Workflow Diagram"/>
 </p>
 
-## 🧠 What is DeepHub?
+## DeepHub
 
 **DeepHub** is an autonomous agent designed to perform deep semantic research across GitHub repositories. It intelligently searches, analyzes, and ranks repositories based on user intent — even for less-known but highly relevant tools.
 
