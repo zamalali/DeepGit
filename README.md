@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="https://img.icons8.com/?size=100&id=118557&format=png&color=000000" width="32" style="vertical-align: middle;"/> DeepHub
+  <img src="https://img.icons8.com/?size=100&id=118557&format=png&color=000000" width="52" style="vertical-align: middle;"/> DeepHub
 </h1>
 
 <p align="center">
