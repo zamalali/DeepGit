@@ -14,22 +14,22 @@
 
 When a user submits a query, **DeepHub Orchestrator Agent** takes over. Here's the breakdown of the pipeline:
 
-### 🔹 1. Query Expansion Agent
+### 🔹 1. Query Expansion Tool
 Enhances vague user queries using language models to add specificity and context — enabling more accurate downstream retrieval.
 
-### 🔹 2. Semantic Retrieval Agent
+### 🔹 2. Semantic Retrieval Tool
 Uses state-of-the-art embedding models to semantically match the enhanced query against a broad set of GitHub repositories.
 
-### 🔹 3. Documentation Intelligence Agent
+### 🔹 3. Documentation Intelligence Tool
 Summarizes and interprets README files to understand the purpose, setup, and key features of each repository.
 
-### 🔹 4. Codebase Mapping Agent
+### 🔹 4. Codebase Mapping Tool
 Analyzes the project’s file structure and technology stack to assess complexity, modularity, and suitability for the user’s needs.
 
-### 🔹 5. Community Insight Agent
+### 🔹 5. Community Insight Tool
 Gathers social signals like stars, forks, issues, and pull request activity to gauge real-world engagement and maturity.
 
-### 🔹 6. Relevance Synthesis Agent
+### 🔹 6. Relevance Synthesis Tool
 Combines insights from all modules to compute a final relevance score tailored to the user query.
 
 ### 🔹 7. Insight Delivery Module
