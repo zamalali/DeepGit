@@ -11,12 +11,19 @@ import math
 import logging
 from dotenv import load_dotenv
 from pathlib import Path
+from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate
 
-# Resolve the path to the root directory
+# ---------------------------
+# Environment and .env Setup
+# ---------------------------
+# Resolve the path to the root directory's .env file
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=str(dotenv_path))
 
-# Load the .env file
-load_dotenv(dotenv_path)
+if "GITHUB_API_KEY" not in os.environ:
+    os.environ["GITHUB_API_KEY"] = getpass.getpass("Enter your GitHub API key: ")
+
 # ---------------------------
 # Logging Setup
 # ---------------------------
@@ -24,10 +31,44 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # ---------------------------
-# Environment Setup
+# ChatGroq Integration Setup (for query enhancement and final justification)
 # ---------------------------
-if "GITHUB_API_KEY" not in os.environ:
-    os.environ["GITHUB_API_KEY"] = getpass.getpass("Enter your GitHub API key: ")
+llm_groq = ChatGroq(
+    model="llama-3.1-8b-instant",
+    temperature=0.2,
+    max_tokens=100,
+    timeout=15,
+    max_retries=2
+)
+
+def enhance_query(original_query):
+    prompt = f"""You are an expert research assistant. Given the query: "{original_query}", 
+please enhance and expand it by adding relevant technical keywords, recent research context, 
+and details specifically related to the application of Chain of Thought prompting in large language models within a Python environment.
+Provide the refined query text."""
+    messages = [
+        ("system", "You are a helpful research assistant specializing in AI and software research."),
+        ("human", prompt)
+    ]
+    result = llm_groq.invoke(messages)
+    return result
+
+def justify_candidate(candidate):
+    prompt = f"""You are a highly knowledgeable AI research assistant. In one to two lines, explain why the repository titled "{candidate['title']}" is a good match for a query on Chain of Thought prompting in large language models within a Python environment. Mention key factors such as documentation quality, activity, and community validation if relevant.
+
+Repository Details:
+- Stars: {candidate['stars']}
+- Semantic Similarity: {candidate.get('semantic_similarity', 0):.4f}
+- Cross-Encoder Score: {candidate.get('cross_encoder_score', 0):.4f}
+- Activity Score: {candidate.get('activity_score', 0):.2f}
+
+Provide a concise justification:"""
+    messages = [
+        ("system", "You are a highly knowledgeable AI research assistant that can succinctly justify repository matches."),
+        ("human", prompt)
+    ]
+    result = llm_groq.invoke(messages)
+    return result
 
 # ---------------------------
 # GitHub API Helper Functions
@@ -92,7 +133,7 @@ def fetch_github_repositories(query, max_results=1000, per_page=100):
     num_pages = max_results // per_page
     for page in range(1, num_pages + 1):
         params = {
-            "q": query,  # e.g., "Chain of Thought prompting language:python"
+            "q": query,
             "sort": "stars",
             "order": "desc",
             "per_page": per_page,
@@ -122,13 +163,22 @@ def fetch_github_repositories(query, max_results=1000, per_page=100):
     return repositories
 
 # ---------------------------
-# Stage 1: Dense Retrieval with FAISS
+# Stage 0: Query Enhancement using ChatGroq
 # ---------------------------
-sem_model = SentenceTransformer("all-mpnet-base-v2")
+logger.info("Enhancing query using ChatGroq...")
 user_query_text = """
 I am researching the application of Chain of Thought prompting for improving reasoning in large language models within a Python environment.
 """
-github_query = "Chain of Thought prompting language:python"
+original_query = user_query_text.strip()
+enhanced_query = enhance_query(original_query)
+logger.info(f"Enhanced Query: {enhanced_query}")
+github_query = enhanced_query + " language:python"
+logger.info(f"Using GitHub query: {github_query}")
+
+# ---------------------------
+# Stage 1: Dense Retrieval with FAISS
+# ---------------------------
+sem_model = SentenceTransformer("all-mpnet-base-v2")
 repos = fetch_github_repositories(github_query)
 docs = [repo.get("combined_doc", "") for repo in repos]
 logger.info(f"Encoding {len(docs)} documents for dense retrieval...")
@@ -245,6 +295,32 @@ final_ranked = sorted(filtered_candidates, key=lambda x: x["final_score"], rever
 logger.info(f"Stage 4 complete: Final ranking computed for {len(final_ranked)} candidates.")
 
 # ---------------------------
+# Stage 5: Final Justification using ChatGroq
+# ---------------------------
+def justify_candidate(candidate):
+    prompt = f"""You are a highly knowledgeable AI research assistant. In one to two lines, explain why the repository titled "{candidate['title']}" is a good match for a query on Chain of Thought prompting in large language models within a Python environment. Mention key factors such as documentation quality, activity, and community validation if relevant.
+
+Repository Details:
+- Stars: {candidate['stars']}
+- Semantic Similarity: {candidate.get('semantic_similarity', 0):.4f}
+- Cross-Encoder Score: {candidate.get('cross_encoder_score', 0):.4f}
+- Activity Score: {candidate.get('activity_score', 0):.2f}
+
+Provide a concise justification:"""
+    messages = [
+        ("system", "You are a highly knowledgeable AI research assistant that can succinctly justify repository matches."),
+        ("human", prompt)
+    ]
+    result = llm_groq.invoke(messages)
+    return result
+
+justifications = {}
+for repo in final_ranked[:10]:
+    justification = justify_candidate(repo)
+    justifications[repo['title']] = justification
+    logger.info(f"Justification for {repo['title']}: {justification}")
+
+# ---------------------------
 # Final Output
 # ---------------------------
 print("\n=== Final Ranked Repositories ===")
@@ -257,6 +333,7 @@ for rank, repo in enumerate(final_ranked[:10], 1):
     print(f"Cross-Encoder Score: {repo.get('cross_encoder_score', 0):.4f}")
     print(f"Activity Score: {repo.get('activity_score', 0):.2f}")
     print(f"Final Score: {repo.get('final_score', 0):.4f}")
+    print(f"Justification: {justifications.get(repo['title'], 'No justification available')}")
     print(f"Combined Doc Snippet: {repo['combined_doc'][:200]}...")
     print('-' * 80)
-    print("\n=== End of Results ===")
+print("\n=== End of Results ===")
