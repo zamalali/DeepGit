@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 # Load .env from the parent directory
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 if dotenv_path.exists():
-    from dotenv import load_dotenv
     load_dotenv(dotenv_path)
 
 if "GITHUB_API_KEY" not in os.environ:
@@ -72,16 +71,16 @@ class AgentConfiguration(BaseModel):
         values = {k: v for k, v in raw_values.items() if v is not None}
         return cls(**values)
 
-# ---------------------------
-# Node 1: Fetch Repositories
-# ---------------------------
-def fetch_repositories(state: AgentState, config: RunnableConfig):
+# ----------------------------------------------------
+# Node 1: Ingest GitHub Repositories (fetch_repositories)
+# ----------------------------------------------------
+def ingest_github_repos(state: AgentState, config: RunnableConfig):
+    """Ingest GitHub repositories based on a search query."""
     headers = {
         "Authorization": f"token {os.getenv('GITHUB_API_KEY')}",
         "Accept": "application/vnd.github.v3+json"
     }
-    # Helper functions for GitHub API
-    def fetch_readme_content(repo_full_name, headers):
+    def fetch_readme_content(repo_full_name):
         readme_url = f"https://api.github.com/repos/{repo_full_name}/readme"
         response = requests.get(readme_url, headers=headers)
         if response.status_code == 200:
@@ -98,7 +97,7 @@ def fetch_repositories(state: AgentState, config: RunnableConfig):
             logger.error(f"Error fetching file: {e}")
         return ""
     
-    def fetch_directory_markdown(repo_full_name, path, headers):
+    def fetch_directory_markdown(repo_full_name, path):
         md_content = ""
         url = f"https://api.github.com/repos/{repo_full_name}/contents/{path}"
         response = requests.get(url, headers=headers)
@@ -110,9 +109,9 @@ def fetch_repositories(state: AgentState, config: RunnableConfig):
                     md_content += f"\n\n# {item['name']}\n" + content
         return md_content
     
-    def fetch_repo_documentation(repo_full_name, headers):
+    def fetch_repo_documentation(repo_full_name):
         doc_text = ""
-        readme = fetch_readme_content(repo_full_name, headers)
+        readme = fetch_readme_content(repo_full_name)
         if readme:
             doc_text += "# README\n" + readme
         root_url = f"https://api.github.com/repos/{repo_full_name}/contents"
@@ -125,7 +124,7 @@ def fetch_repositories(state: AgentState, config: RunnableConfig):
                         content = fetch_file_content(item["download_url"])
                         doc_text += f"\n\n# {item['name']}\n" + content
                 elif item["type"] == "dir" and item["name"].lower() in ["docs", "documentation"]:
-                    doc_text += f"\n\n# {item['name']} folder\n" + fetch_directory_markdown(repo_full_name, item["name"], headers)
+                    doc_text += f"\n\n# {item['name']} folder\n" + fetch_directory_markdown(repo_full_name, item["name"])
         return doc_text if doc_text.strip() else "No documentation available."
     
     def fetch_github_repositories(query, max_results, per_page):
@@ -150,7 +149,7 @@ def fetch_repositories(state: AgentState, config: RunnableConfig):
             for repo in items:
                 repo_link = repo['html_url']
                 full_name = repo.get('full_name', '')
-                doc_content = fetch_repo_documentation(full_name, headers)
+                doc_content = fetch_repo_documentation(full_name)
                 star_count = repo.get('stargazers_count', 0)
                 repositories.append({
                     "title": repo.get('name', 'No title available'),
@@ -164,13 +163,18 @@ def fetch_repositories(state: AgentState, config: RunnableConfig):
         return repositories
 
     agent_config = AgentConfiguration.from_runnable_config(config)
-    state.repositories = fetch_github_repositories(state.github_query, int(agent_config.max_results), int(agent_config.per_page))
+    state.repositories = fetch_github_repositories(
+        state.github_query,
+        int(agent_config.max_results),
+        int(agent_config.per_page)
+    )
     return {"repositories": state.repositories}
 
-# ---------------------------
-# Node 2: Dense Retrieval with FAISS
-# ---------------------------
-def dense_retrieval(state: AgentState, config: RunnableConfig):
+# ---------------------------------------------------------
+# Node 2: Neural Dense Retrieval with FAISS (dense_retrieval)
+# ---------------------------------------------------------
+def neural_dense_retrieval(state: AgentState, config: RunnableConfig):
+    """Performs neural dense retrieval on the ingested repository documents using FAISS."""
     agent_config = AgentConfiguration.from_runnable_config(config)
     sem_model = SentenceTransformer(agent_config.sem_model_name)
     
@@ -183,7 +187,6 @@ def dense_retrieval(state: AgentState, config: RunnableConfig):
     logger.info(f"Encoding {len(docs)} documents for dense retrieval...")
     doc_embeddings = sem_model.encode(docs, convert_to_numpy=True, show_progress_bar=True, batch_size=16)
 
-    # Handle 1D shape if there's exactly 1 doc
     if doc_embeddings.ndim == 1:
         doc_embeddings = doc_embeddings.reshape(1, -1)
 
@@ -214,28 +217,37 @@ def dense_retrieval(state: AgentState, config: RunnableConfig):
     logger.info(f"Dense retrieval complete: {len(state.semantic_ranked)} candidates ranked by semantic similarity.")
     return {"semantic_ranked": state.semantic_ranked}
 
-# ---------------------------
-# Node 3: Re-Ranking with Cross-Encoder
-# ---------------------------
-def cross_encoder_rerank(state: AgentState, config: RunnableConfig):
+# --------------------------------------------------------
+# Node 3: Cross-Encoder Re-Ranking (cross_encoder_rerank)
+# --------------------------------------------------------
+def cross_encoder_reranking(state: AgentState, config: RunnableConfig):
+    """Re-rank top candidates using a CrossEncoder model."""
     agent_config = AgentConfiguration.from_runnable_config(config)
     cross_encoder = CrossEncoder(agent_config.cross_encoder_model_name)
+    
     candidates_for_rerank = state.semantic_ranked[:100]
     logger.info(f"Re-ranking {len(candidates_for_rerank)} candidates with cross-encoder...")
+
     def cross_encoder_rerank_func(query, candidates, top_n):
         pairs = [[query, candidate["combined_doc"]] for candidate in candidates]
         scores = cross_encoder.predict(pairs, show_progress_bar=True)
         for candidate, score in zip(candidates, scores):
             candidate["cross_encoder_score"] = score
         return sorted(candidates, key=lambda x: x["cross_encoder_score"], reverse=True)[:top_n]
-    state.reranked_candidates = cross_encoder_rerank_func(state.user_query, candidates_for_rerank, int(agent_config.cross_encoder_top_n))
+
+    state.reranked_candidates = cross_encoder_rerank_func(
+        state.user_query,
+        candidates_for_rerank,
+        int(agent_config.cross_encoder_top_n)
+    )
     logger.info(f"Re-ranking complete: {len(state.reranked_candidates)} candidates remain after cross-encoder re-ranking.")
     return {"reranked_candidates": state.reranked_candidates}
 
-# ---------------------------
-# Node 4: Filtering Low-Star Repositories
-# ---------------------------
-def filter_candidates(state: AgentState, config: RunnableConfig):
+# ------------------------------------------------------------
+# Node 4: Threshold-Based Filtering (filter_candidates)
+# ------------------------------------------------------------
+def threshold_filtering(state: AgentState, config: RunnableConfig):
+    """Filters out repositories that don't meet minimum stars or cross-encoder threshold."""
     agent_config = AgentConfiguration.from_runnable_config(config)
     filtered = []
     for repo in state.reranked_candidates:
@@ -245,23 +257,25 @@ def filter_candidates(state: AgentState, config: RunnableConfig):
     if not filtered:
         filtered = state.reranked_candidates
     state.filtered_candidates = filtered
-    logger.info(f"Filtering complete: {len(state.filtered_candidates)} candidates remain after filtering low-star repositories.")
+    logger.info(f"Filtering complete: {len(state.filtered_candidates)} candidates remain after threshold-based filtering.")
     return {"filtered_candidates": state.filtered_candidates}
 
-# ---------------------------
-# Node 5: Activity Analysis
-# ---------------------------
-def analyze_activity(state: AgentState, config: RunnableConfig):
+# -------------------------------------------------------------
+# Node 5: Repository Activity Analysis (analyze_activity)
+# -------------------------------------------------------------
+def repository_activity_analysis(state: AgentState, config: RunnableConfig):
+    """Analyzes repository pull requests, commits, and issues to compute an activity score."""
     headers = {
         "Authorization": f"token {os.getenv('GITHUB_API_KEY')}",
         "Accept": "application/vnd.github.v3+json"
     }
-    def analyze_repository_activity(repo, headers):
+    def analyze_repository_activity(repo):
         full_name = repo.get("full_name")
         pr_url = f"https://api.github.com/repos/{full_name}/pulls"
         pr_params = {"state": "open", "per_page": 100}
         pr_response = requests.get(pr_url, headers=headers, params=pr_params)
         pr_count = len(pr_response.json()) if pr_response.status_code == 200 else 0
+
         commits_url = f"https://api.github.com/repos/{full_name}/commits"
         commits_params = {"per_page": 1}
         commits_response = requests.get(commits_url, headers=headers, params=commits_params)
@@ -275,47 +289,65 @@ def analyze_activity(state: AgentState, config: RunnableConfig):
                 days_diff = 999
         else:
             days_diff = 999
+
         open_issues = repo.get("open_issues_count", 0)
         non_pr_issues = max(0, open_issues - pr_count)
         activity_score = (3 * pr_count) + non_pr_issues - (days_diff / 30)
         return {"pr_count": pr_count, "latest_commit_days": days_diff, "activity_score": activity_score}
     
     for repo in state.filtered_candidates:
-        activity_data = analyze_repository_activity(repo, headers)
+        activity_data = analyze_repository_activity(repo)
         repo.update(activity_data)
-    logger.info("Activity analysis complete for filtered candidates.")
+
+    logger.info("Repository activity analysis complete for filtered candidates.")
     return {"filtered_candidates": state.filtered_candidates}
 
-# ---------------------------
-# Node 6: Final Ranking
-# ---------------------------
-def final_ranking(state: AgentState, config: RunnableConfig):
+# -------------------------------------------------------
+# Node 6: Multi-Factor Ranking (final_ranking)
+# -------------------------------------------------------
+def multi_factor_ranking(state: AgentState, config: RunnableConfig):
+    """
+    Combines semantic similarity, cross-encoder score, activity score, and star count
+    into a final composite score for each repository.
+    """
     semantic_scores = [repo.get("semantic_similarity", 0) for repo in state.filtered_candidates]
     cross_encoder_scores = [repo.get("cross_encoder_score", 0) for repo in state.filtered_candidates]
     activity_scores = [repo.get("activity_score", -100) for repo in state.filtered_candidates]
     star_scores = [math.log(repo.get("stars", 0) + 1) for repo in state.filtered_candidates]
+
     min_sem, max_sem = min(semantic_scores), max(semantic_scores)
     min_ce, max_ce = min(cross_encoder_scores), max(cross_encoder_scores)
     min_act, max_act = min(activity_scores), max(activity_scores)
     min_star, max_star = min(star_scores), max(star_scores)
+
     def normalize(val, min_val, max_val):
         if max_val - min_val == 0:
             return 0.5
         return (val - min_val) / (max_val - min_val)
+
     for repo in state.filtered_candidates:
         norm_sem = normalize(repo.get("semantic_similarity", 0), min_sem, max_sem)
         norm_ce = normalize(repo.get("cross_encoder_score", 0), min_ce, max_ce)
         norm_act = normalize(repo.get("activity_score", -100), min_act, max_act)
         norm_star = normalize(math.log(repo.get("stars", 0) + 1), min_star, max_star)
-        repo["final_score"] = 0.3 * norm_ce + 0.2 * norm_sem + 0.2 * norm_act + 0.3 * norm_star
+
+        # Weighted combination
+        repo["final_score"] = (
+            0.3 * norm_ce +
+            0.2 * norm_sem +
+            0.2 * norm_act +
+            0.3 * norm_star
+        )
+
     state.final_ranked = sorted(state.filtered_candidates, key=lambda x: x["final_score"], reverse=True)
-    logger.info(f"Final ranking computed for {len(state.final_ranked)} candidates.")
+    logger.info(f"Final multi-factor ranking computed for {len(state.final_ranked)} candidates.")
     return {"final_ranked": state.final_ranked}
 
-# ---------------------------
-# Node 7: Display Results
-# ---------------------------
-def display_results(state: AgentState, config: RunnableConfig):
+# --------------------------------------------------------
+# Node 7: Output Presentation (display_results)
+# --------------------------------------------------------
+def output_presentation(state: AgentState, config: RunnableConfig):
+    """Formats and presents the top-ranked repositories in a readable summary."""
     results_str = "\n=== Final Ranked Repositories ===\n"
     top_n = 10
     for rank, repo in enumerate(state.final_ranked[:top_n], 1):
@@ -331,26 +363,32 @@ def display_results(state: AgentState, config: RunnableConfig):
         results_str += '-' * 80 + "\n"
     return {"final_results": results_str}
 
-# ---------------------------
+# -------------------------------------------------------
 # Build and Compile the Graph
-# ---------------------------
-builder = StateGraph(AgentState, input=AgentStateInput, output=AgentStateOutput, config_schema=AgentConfiguration)
-builder.add_node("fetch_repositories", fetch_repositories)
-builder.add_node("dense_retrieval", dense_retrieval)
-builder.add_node("cross_encoder_rerank", cross_encoder_rerank)
-builder.add_node("filter_candidates", filter_candidates)
-builder.add_node("analyze_activity", analyze_activity)
-builder.add_node("final_ranking", final_ranking)
-builder.add_node("display_results", display_results)
+# -------------------------------------------------------
+builder = StateGraph(
+    AgentState,
+    input=AgentStateInput,
+    output=AgentStateOutput,
+    config_schema=AgentConfiguration
+)
 
-builder.add_edge(START, "fetch_repositories")
-builder.add_edge("fetch_repositories", "dense_retrieval")
-builder.add_edge("dense_retrieval", "cross_encoder_rerank")
-builder.add_edge("cross_encoder_rerank", "filter_candidates")
-builder.add_edge("filter_candidates", "analyze_activity")
-builder.add_edge("analyze_activity", "final_ranking")
-builder.add_edge("final_ranking", "display_results")
-builder.add_edge("display_results", END)
+builder.add_node("ingest_github_repos", ingest_github_repos)
+builder.add_node("neural_dense_retrieval", neural_dense_retrieval)
+builder.add_node("cross_encoder_reranking", cross_encoder_reranking)
+builder.add_node("threshold_filtering", threshold_filtering)
+builder.add_node("repository_activity_analysis", repository_activity_analysis)
+builder.add_node("multi_factor_ranking", multi_factor_ranking)
+builder.add_node("output_presentation", output_presentation)
+
+builder.add_edge(START, "ingest_github_repos")
+builder.add_edge("ingest_github_repos", "neural_dense_retrieval")
+builder.add_edge("neural_dense_retrieval", "cross_encoder_reranking")
+builder.add_edge("cross_encoder_reranking", "threshold_filtering")
+builder.add_edge("threshold_filtering", "repository_activity_analysis")
+builder.add_edge("repository_activity_analysis", "multi_factor_ranking")
+builder.add_edge("multi_factor_ranking", "output_presentation")
+builder.add_edge("output_presentation", END)
 
 graph = builder.compile()
 
@@ -361,5 +399,5 @@ if __name__ == "__main__":
         user_query="I am researching the application of Chain of Thought prompting for improving reasoning in large language models within a Python environment."
     )
     result = graph.run(initial_state)
-    # You can print the final ranked repositories or the formatted results.
+    # Print the final ranked repositories or the formatted results.
     print(result.final_ranked)
