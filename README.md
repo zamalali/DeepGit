@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-  <img src="assets/workflow.png" width="120%" alt="Workflow Diagram"/>
+  <img src="assets/langgraph.png" width="100%" alt="Workflow Diagram"/>
 </p>
 
 ## DeepGit

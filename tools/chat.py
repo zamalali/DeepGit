@@ -100,7 +100,7 @@ def convert_to_search_tags(query: str) -> str:
 
 # Example usage
 if __name__ == "__main__":
-    user_query = "I am looking for repos around finetuning gemini models maoinly 1.5 flash 002"
+    user_query = "I am looking for repos around finetuning gemini models mainly 1.5 flash 002"
     github_query = convert_to_search_tags(user_query)
     print("🔍 GitHub Search Query:")
     print(github_query)
