@@ -51,6 +51,8 @@ class AgentState:
     activity_candidates: List[Any] = field(default_factory=list)
     quality_candidates: List[Any] = field(default_factory=list)
     final_ranked: List[Any] = field(default_factory=list)
+    # New field to store decision about code analysis:
+    run_code_analysis: bool = field(default=False)
 
 @dataclass(kw_only=True)
 class AgentStateInput:
@@ -273,6 +275,18 @@ def threshold_filtering(state: AgentState, config: Any):
     return {"filtered_candidates": state.filtered_candidates}
 
 # -------------------------------------------------------------
+# NEW NODE: Decision Maker to Decide on Code Analysis
+# -------------------------------------------------------------
+def decision_maker(state: AgentState, config: Any):
+    # Import the decision function from decision.py
+    from tools.decision import should_run_code_analysis
+    repo_count = len(state.filtered_candidates)
+    decision = should_run_code_analysis(state.user_query, repo_count)
+    state.run_code_analysis = (decision == 1)
+    logger.info(f"Decision Maker: run_code_analysis = {state.run_code_analysis}")
+    return {"run_code_analysis": state.run_code_analysis}
+
+# -------------------------------------------------------------
 # Node 5A: Repository Activity Analysis
 # -------------------------------------------------------------
 def repository_activity_analysis(state: AgentState, config: Any):
@@ -375,6 +389,11 @@ def analyze_code_quality(repo_info):
             logger.error(f"Cleanup error for {full_name}: {cleanup_e}")
 
 def code_quality_analysis(state: AgentState, config: Any):
+    # Check decision flag from decision_maker
+    if not getattr(state, "run_code_analysis", False):
+        logger.info("Skipping code quality analysis as per decision maker.")
+        state.quality_candidates = []
+        return {"quality_candidates": state.quality_candidates}
     quality_list = []
     for repo in state.filtered_candidates:
         if "clone_url" not in repo:
@@ -479,6 +498,7 @@ builder.add_node("cross_encoder_reranking", cross_encoder_reranking)
 builder.add_node("threshold_filtering", threshold_filtering)
 # Branch from threshold filtering:
 builder.add_node("repository_activity_analysis", repository_activity_analysis)
+builder.add_node("decision_maker", decision_maker)  # New decision maker node
 builder.add_node("code_quality_analysis", code_quality_analysis)
 # Merge node to combine both branches:
 builder.add_node("merge_analysis", merge_analysis)
@@ -491,9 +511,10 @@ builder.add_edge("convert_searchable_query", "ingest_github_repos")
 builder.add_edge("ingest_github_repos", "neural_dense_retrieval")
 builder.add_edge("neural_dense_retrieval", "cross_encoder_reranking")
 builder.add_edge("cross_encoder_reranking", "threshold_filtering")
-# Branch out from threshold filtering into two nodes:
+# Branch out from threshold filtering:
 builder.add_edge("threshold_filtering", "repository_activity_analysis")
-builder.add_edge("threshold_filtering", "code_quality_analysis")
+builder.add_edge("threshold_filtering", "decision_maker")
+builder.add_edge("decision_maker", "code_quality_analysis")
 # Merge the results from the two branches:
 builder.add_edge("repository_activity_analysis", "merge_analysis")
 builder.add_edge("code_quality_analysis", "merge_analysis")
@@ -504,6 +525,7 @@ builder.add_edge("output_presentation", END)
 graph = builder.compile()
 
 if __name__ == "__main__":
+    
     initial_state = AgentStateInput(
         user_query="I am researching the application of Chain of Thought prompting for improving reasoning in large language models within a Python environment."
     )
