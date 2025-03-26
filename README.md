@@ -1,7 +1,18 @@
-<h1 align="center" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 48px; color: #222;">
-  <img src="assets/deepgit.ico" width="64" style="vertical-align: middle; margin-right: 12px;" />
-  <strong>DeepGit</strong>
+<h1 align="center" style="
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 56px;
+  color: #111;
+  letter-spacing: 1px;
+  font-weight: 800;
+  margin-top: 40px;
+  margin-bottom: 10px;
+">
+  <img src="assets/deepgit.ico" width="72" style="vertical-align: middle; margin-right: 16px;" />
+  <span style="background: linear-gradient(90deg, #111, #444); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+    DeepGit
+  </span>
 </h1>
+
 
 
 
