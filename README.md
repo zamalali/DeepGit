@@ -1,7 +1,8 @@
-<h1 align="center">
-  <img src="assets/deepgit.ico" width="44" style="vertical-align: middle; margin-right: 4px;" />
-  DeepGit
+<h1 align="center" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 48px; color: #222;">
+  <img src="assets/deepgit.ico" width="64" style="vertical-align: middle; margin-right: 12px;" />
+  <strong>DeepGit</strong>
 </h1>
+
 
 
 <p align="center">
