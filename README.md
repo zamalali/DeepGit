@@ -1,6 +1,8 @@
 <h1 align="center">
-  <img src="https://img.icons8.com/?size=100&id=118557&format=png&color=000000" width="72" style="vertical-align: middle;"/> DeepGit
+  <img src="assets/deepgit.ico" width="44" style="vertical-align: middle; margin-right: 4px;" />
+  DeepGit
 </h1>
+
 
 <p align="center">
   <img src="assets/flow.png" alt="Workflow Diagram" style="max-width: 800px; width: 100%; height: auto;" />
