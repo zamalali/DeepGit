@@ -7,7 +7,7 @@
   margin-top: 40px;
   margin-bottom: 10px;
 ">
-  <img src="assets/deepgit.ico" width="72" style="vertical-align: middle; margin-right: 16px;" />
+  <img src="assets/deepgit.png" width="92" style="vertical-align: middle; margin-right: 16px;" />
   <span style="background: linear-gradient(90deg, #111, #444); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
     DeepGit
   </span>
