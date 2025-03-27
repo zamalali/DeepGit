@@ -1,17 +1,29 @@
+<!-- Google Font for pixel-style text -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
 <h1 align="center" style="
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 56px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 40px;
   color: #111;
-  letter-spacing: 1px;
-  font-weight: 800;
   margin-top: 40px;
   margin-bottom: 10px;
 ">
-  <img src="assets/deepgit.png" width="92" style="vertical-align: middle; margin-right: 16px;" />
-  <span style="background: linear-gradient(90deg, #111, #444); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+  <img src="assets/deepgit.png" width="92" height="92" style="display: block;" />
+  <span style="
+    background: linear-gradient(90deg, #111, #4b0082);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+    letter-spacing: 2px;
+  ">
     DeepGit
   </span>
 </h1>
+
 
 
 
