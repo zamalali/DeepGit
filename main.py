@@ -66,15 +66,9 @@ class AgentState:
 class AgentStateInput:
     user_query: str = field(default="I am researching the application of Chain of Thought prompting for improving reasoning in large language models within a Python environment.")
 
-"""
 @dataclass(kw_only=True)
 class AgentStateOutput:
     final_ranked: List[Any] = field(default_factory=list)
-"""
-
-@dataclass(kw_only=True)
-class AgentStateOutput:
-    final_results: str = ""
 
 class AgentConfiguration(BaseModel):
     max_results: int = Field(default=100, title="Max Results", description="Maximum results to fetch from GitHub")
@@ -134,9 +128,7 @@ graph = builder.compile()
 
 if __name__ == "__main__":
     initial_state = AgentStateInput(
-        user_query="I am researching the application of Chain of Thought prompting for improving reasoning in large language models within a Python environment. No need for code analysis."
+        user_query="I am researching the application of Chain of Thought prompting for improving reasoning in large language models within a Python environment."
     )
-    result = graph.invoke(initial_state)
-    print(result["final_results"])
-
-# -------------------------------------------------------
+    result = graph.run(initial_state)
+    print(result.final_ranked)

@@ -1,15 +1,6 @@
-<h1 align="center" style="
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  margin-top: 40px;
-  margin-bottom: 10px;
-">
-  <img src="assets/deepgit.png" width="92" height="92" style="display: block;" />
-  <img src="assets/text.png" height="60" style="display: block;" />
+<h1 align="center">
+  <img src="https://img.icons8.com/?size=100&id=118557&format=png&color=000000" width="72" style="vertical-align: middle;"/> DeepGit
 </h1>
-
 
 
 
