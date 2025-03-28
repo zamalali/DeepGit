@@ -1,97 +1,140 @@
 # tools/github.py
 import os
 import base64
-import requests
 import logging
+import asyncio
+import httpx
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-def fetch_readme_content(repo_full_name, headers):
+# In-memory cache to store file content for given URLs
+FILE_CONTENT_CACHE = {}
+
+async def fetch_readme_content(repo_full_name: str, headers: dict, client: httpx.AsyncClient) -> str:
     readme_url = f"https://api.github.com/repos/{repo_full_name}/readme"
-    response = requests.get(readme_url, headers=headers)
-    if response.status_code == 200:
-        readme_data = response.json()
-        return base64.b64decode(readme_data['content']).decode('utf-8')
-    return ""
-
-def fetch_file_content(download_url):
     try:
-        response = requests.get(download_url)
+        response = await client.get(readme_url, headers=headers)
         if response.status_code == 200:
-            return response.text
+            readme_data = response.json()
+            content = readme_data.get('content', '')
+            if content:
+                return base64.b64decode(content).decode('utf-8')
     except Exception as e:
-        logger.error(f"Error fetching file: {e}")
+        logger.error(f"Error fetching README for {repo_full_name}: {e}")
     return ""
 
-def fetch_directory_markdown(repo_full_name, path, headers):
+async def fetch_file_content(download_url: str, client: httpx.AsyncClient) -> str:
+    # Return cached result if available
+    if download_url in FILE_CONTENT_CACHE:
+        return FILE_CONTENT_CACHE[download_url]
+    try:
+        response = await client.get(download_url)
+        if response.status_code == 200:
+            text = response.text
+            FILE_CONTENT_CACHE[download_url] = text
+            return text
+    except Exception as e:
+        logger.error(f"Error fetching file from {download_url}: {e}")
+    return ""
+
+async def fetch_directory_markdown(repo_full_name: str, path: str, headers: dict, client: httpx.AsyncClient) -> str:
     md_content = ""
     url = f"https://api.github.com/repos/{repo_full_name}/contents/{path}"
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        items = response.json()
-        for item in items:
-            if item["type"] == "file" and item["name"].lower().endswith(".md"):
-                content = fetch_file_content(item["download_url"])
-                md_content += f"\n\n# {item['name']}\n" + content
+    try:
+        response = await client.get(url, headers=headers)
+        if response.status_code == 200:
+            items = response.json()
+            # Create concurrent tasks for each markdown file
+            tasks = []
+            for item in items:
+                if item["type"] == "file" and item["name"].lower().endswith(".md"):
+                    tasks.append(fetch_file_content(item["download_url"], client))
+            if tasks:
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                # Combine markdown content from each file
+                for item, content in zip(items, results):
+                    if item["type"] == "file" and item["name"].lower().endswith(".md") and not isinstance(content, Exception):
+                        md_content += f"\n\n# {item['name']}\n" + content
+    except Exception as e:
+        logger.error(f"Error fetching directory markdown for {repo_full_name}/{path}: {e}")
     return md_content
 
-def fetch_repo_documentation(repo_full_name, headers):
+async def fetch_repo_documentation(repo_full_name: str, headers: dict, client: httpx.AsyncClient) -> str:
     doc_text = ""
-    readme = fetch_readme_content(repo_full_name, headers)
-    if readme:
-        doc_text += "# README\n" + readme
+    # Launch README fetching concurrently
+    readme_task = asyncio.create_task(fetch_readme_content(repo_full_name, headers, client))
     root_url = f"https://api.github.com/repos/{repo_full_name}/contents"
-    response = requests.get(root_url, headers=headers)
-    if response.status_code == 200:
-        items = response.json()
-        for item in items:
-            if item["type"] == "file" and item["name"].lower().endswith(".md"):
-                if item["name"].lower() != "readme.md":
-                    content = fetch_file_content(item["download_url"])
-                    doc_text += f"\n\n# {item['name']}\n" + content
-            elif item["type"] == "dir" and item["name"].lower() in ["docs", "documentation"]:
-                doc_text += f"\n\n# {item['name']} folder\n" + fetch_directory_markdown(repo_full_name, item["name"], headers)
+    try:
+        response = await client.get(root_url, headers=headers)
+        if response.status_code == 200:
+            items = response.json()
+            tasks = []
+            for item in items:
+                if item["type"] == "file" and item["name"].lower().endswith(".md"):
+                    if item["name"].lower() != "readme.md":
+                        tasks.append(asyncio.create_task(fetch_file_content(item["download_url"], client)))
+                elif item["type"] == "dir" and item["name"].lower() in ["docs", "documentation"]:
+                    tasks.append(asyncio.create_task(fetch_directory_markdown(repo_full_name, item["name"], headers, client)))
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for res in results:
+                if not isinstance(res, Exception):
+                    doc_text += "\n\n" + res
+    except Exception as e:
+        logger.error(f"Error fetching repository contents for {repo_full_name}: {e}")
+    readme = await readme_task
+    if readme:
+        doc_text = "# README\n" + readme + doc_text
     return doc_text if doc_text.strip() else "No documentation available."
 
-def fetch_github_repositories(query, max_results, per_page, headers):
+async def fetch_github_repositories(query: str, max_results: int, per_page: int, headers: dict) -> list:
     url = "https://api.github.com/search/repositories"
     repositories = []
     num_pages = max_results // per_page
-    for page in range(1, num_pages + 1):
-        params = {
-            "q": query,
-            "sort": "stars",
-            "order": "desc",
-            "per_page": per_page,
-            "page": page
-        }
-        response = requests.get(url, headers=headers, params=params)
-        if response.status_code != 200:
-            logger.error(f"Error {response.status_code}: {response.json().get('message')}")
-            break
-        items = response.json().get('items', [])
-        if not items:
-            break
-        for repo in items:
-            repo_link = repo['html_url']
-            full_name = repo.get('full_name', '')
-            clone_url = repo.get('clone_url', f"https://github.com/{full_name}.git")
-            doc_content = fetch_repo_documentation(full_name, headers)
-            star_count = repo.get('stargazers_count', 0)
-            repositories.append({
-                "title": repo.get('name', 'No title available'),
-                "link": repo_link,
-                "clone_url": clone_url,
-                "combined_doc": doc_content,
-                "stars": star_count,
-                "full_name": full_name,
-                "open_issues_count": repo.get('open_issues_count', 0)
-            })
+    async with httpx.AsyncClient() as client:
+        for page in range(1, num_pages + 1):
+            params = {
+                "q": query,
+                "sort": "stars",
+                "order": "desc",
+                "per_page": per_page,
+                "page": page
+            }
+            try:
+                response = await client.get(url, headers=headers, params=params)
+                if response.status_code != 200:
+                    logger.error(f"Error {response.status_code}: {response.json().get('message')}")
+                    break
+                items = response.json().get('items', [])
+                if not items:
+                    break
+                # Concurrently fetch documentation for each repo
+                tasks = []
+                for repo in items:
+                    full_name = repo.get('full_name', '')
+                    tasks.append(asyncio.create_task(fetch_repo_documentation(full_name, headers, client)))
+                docs = await asyncio.gather(*tasks, return_exceptions=True)
+                for repo, doc in zip(items, docs):
+                    repo_link = repo['html_url']
+                    full_name = repo.get('full_name', '')
+                    clone_url = repo.get('clone_url', f"https://github.com/{full_name}.git")
+                    star_count = repo.get('stargazers_count', 0)
+                    repositories.append({
+                        "title": repo.get('name', 'No title available'),
+                        "link": repo_link,
+                        "clone_url": clone_url,
+                        "combined_doc": doc if not isinstance(doc, Exception) else "",
+                        "stars": star_count,
+                        "full_name": full_name,
+                        "open_issues_count": repo.get('open_issues_count', 0)
+                    })
+            except Exception as e:
+                logger.error(f"Error fetching repositories for query {query}: {e}")
+                break
     logger.info(f"Fetched {len(repositories)} repositories for query '{query}'.")
     return repositories
 
-def ingest_github_repos(state, config):
+async def ingest_github_repos_async(state, config) -> dict:
     headers = {
         "Authorization": f"token {os.getenv('GITHUB_API_KEY')}",
         "Accept": "application/vnd.github.v3+json"
@@ -102,10 +145,17 @@ def ingest_github_repos(state, config):
     # Import AgentConfiguration from agent.py.
     from agent import AgentConfiguration
     agent_config = AgentConfiguration.from_runnable_config(config)
+    # Fetch repositories concurrently for each keyword
+    tasks = []
     for keyword in keyword_list:
         query = f"{keyword} language:python"
-        repos = fetch_github_repositories(query, agent_config.max_results, agent_config.per_page, headers)
-        all_repos.extend(repos)
+        tasks.append(asyncio.create_task(fetch_github_repositories(query, agent_config.max_results, agent_config.per_page, headers)))
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    for result in results:
+        if not isinstance(result, Exception):
+            all_repos.extend(result)
+        else:
+            logger.error(f"Error in fetching repositories for a keyword: {result}")
     seen = set()
     unique_repos = []
     for repo in all_repos:
@@ -115,3 +165,7 @@ def ingest_github_repos(state, config):
     state.repositories = unique_repos
     logger.info(f"Total unique repositories fetched: {len(state.repositories)}")
     return {"repositories": state.repositories}
+
+def ingest_github_repos(state, config):
+    # Synchronous wrapper for the asynchronous function.
+    return asyncio.run(ingest_github_repos_async(state, config))

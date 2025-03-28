@@ -23,7 +23,7 @@ prompt = ChatPromptTemplate.from_messages([
      """You are a smart decision-making agent for a GitHub research assistant.
 
 Your job is to decide whether code-level analysis (like flake8 or static checks) should be performed on the repositories returned from a search.
-
+If the user has not explicitly asked for code quality or structure, you should not run code analysis.
 You must consider:
 1. **The user's goal**, described in the query.
 2. **The number of repositories fetched**. If too many repos are returned, code-level analysis is too slow and unnecessary.
