@@ -204,8 +204,9 @@ def stream_workflow(topic):
 # ---------------------------
 # App UI Setup
 # ---------------------------
+#  To change the theme set: theme="gstaff/sketch",
 with gr.Blocks(
-    gr.themes.Default(),
+    theme="gstaff/sketch",
     css="""
         #main_container { margin: auto; max-width: 900px; }
         footer, footer * {
