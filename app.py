@@ -50,7 +50,7 @@ def filter_logs(logs):
 # ---------------------------
 # Title, Favicon & Description
 # ---------------------------
-custom_theme = gr.Theme.load("themes/theme_schema@0.0.1.json")
+#custom_theme = gr.Theme.load("gstaff/sketch")
 
 favicon_html = """
 <head>
@@ -205,7 +205,7 @@ def stream_workflow(topic):
 # App UI Setup
 # ---------------------------
 with gr.Blocks(
-    theme=custom_theme,
+    theme="gstaff/sketch",
     css="""
         #main_container { margin: auto; max-width: 900px; }
         footer, footer * {
