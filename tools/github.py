@@ -1,4 +1,3 @@
-# tools/github.py
 import os
 import base64
 import logging
@@ -139,16 +138,29 @@ async def ingest_github_repos_async(state, config) -> dict:
         "Authorization": f"token {os.getenv('GITHUB_API_KEY')}",
         "Accept": "application/vnd.github.v3+json"
     }
+    # Parse the searchable query tokens.
     keyword_list = [kw.strip() for kw in state.searchable_query.split(":") if kw.strip()]
-    logger.info(f"Searchable keywords: {keyword_list}")
+    logger.info(f"Searchable keywords (raw): {keyword_list}")
+    
+    # Determine target language from tokens.
+    target_language = "python"  # default
+    filtered_keywords = []
+    for kw in keyword_list:
+        if kw.startswith("target-"):
+            target_language = kw.split("target-")[-1]
+        else:
+            filtered_keywords.append(kw)
+    keyword_list = filtered_keywords
+    logger.info(f"Filtered keywords: {keyword_list} | Target language: {target_language}")
+    
     all_repos = []
     # Import AgentConfiguration from agent.py.
     from agent import AgentConfiguration
     agent_config = AgentConfiguration.from_runnable_config(config)
-    # Fetch repositories concurrently for each keyword
+    # Fetch repositories concurrently for each keyword.
     tasks = []
     for keyword in keyword_list:
-        query = f"{keyword} language:python"
+        query = f"{keyword} language:{target_language}"
         tasks.append(asyncio.create_task(fetch_github_repositories(query, agent_config.max_results, agent_config.per_page, headers)))
     results = await asyncio.gather(*tasks, return_exceptions=True)
     for result in results:

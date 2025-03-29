@@ -1,15 +1,16 @@
 import os
+import re
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 from pathlib import Path
 
-# Load environment variable
+# Load environment variables
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 if dotenv_path.exists():
     load_dotenv(dotenv_path)
 
-# Step 1: Instantiate Groq model
+# Step 1: Instantiate the Groq model with appropriate settings.
 llm = ChatGroq(
     model="deepseek-r1-distill-llama-70b",
     temperature=0.3,
@@ -17,22 +18,22 @@ llm = ChatGroq(
     max_retries=3,
 )
 
-# Step 2: Build the prompt with improved sample pairs
+# Step 2: Build the prompt with enhanced instructions for iterative thinking and target language detection.
 prompt = ChatPromptTemplate.from_messages([
     ("system", 
      """You are a GitHub search optimization expert.
 
 Your job is to:
 1. Read a user's query about tools, research, or tasks.
-2. Return up to five GitHub-style search tags or library names that maximize repository discovery.
+2. Detect if the query mentions a specific programming language other than Python (for example, JavaScript or JS). If so, record that language as the target language.
+3. Think iteratively and generate your internal chain-of-thought enclosed in <think> ... </think> tags.
+4. After your internal reasoning, output up to five GitHub-style search tags or library names that maximize repository discovery.
    Use as many tags as necessary based on the query's complexity, but never more than five.
-3. Tags must represent:
-   - The core task or technique (e.g., image-augmentation, object-detection)
-   - A specific tool, model name, or approach (e.g., albumentations, yolov5, unet)
-   - Optionally, additional relevant aspects such as methodology (e.g., transformer, attention)
-
+5. If you detected a non-Python target language, append an additional tag at the end in the format target-[language] (e.g., target-javascript).
+   If no specific language is mentioned, do not include any target tag.
+   
 Output Format:
-tag1:tag2[:tag3[:tag4[:tag5]]]
+tag1:tag2[:tag3[:tag4[:tag5[:target-language]]]]
 
 Rules:
 - Use lowercase and hyphenated keywords (e.g., image-augmentation, chain-of-thought).
@@ -40,6 +41,7 @@ Rules:
 - Avoid generic terms like "python", "ai", "tool", "project".
 - Do NOT use full phrases or vague words like "no-code", "framework", or "approach".
 - Prefer real tools, popular methods, or dataset names when mentioned.
+- If your output does not strictly match the required format, correct it after your internal reasoning.
 - Choose high-signal keywords to ensure the search yields the most relevant GitHub repositories.
 
 Excellent Examples:
@@ -89,15 +91,18 @@ Output: object-detection:yolov5:transformer
 Input: "Semantic segmentation for medical images using UNet with attention mechanism"
 Output: semantic-segmentation:unet:attention
 
+Input: "Find repositories implementing data augmentation pipelines in JavaScript"
+Output: data-augmentation:target-javascript
+
 Output must be ONLY the search tags separated by colons. Do not include any extra text, bullet points, or explanations.
 """),
     ("human", "{query}")
 ])
 
-# Step 3: Chain model and prompt
+# Step 3: Chain the prompt with the LLM.
 chain = prompt | llm
 
-# Step 4: Define a function to convert queries
+# Step 4: Define a function to parse the final search tags from the model's response.
 def parse_search_tags(response: str) -> str:
     """
     Removes any internal commentary enclosed in <think> ... </think> tags
@@ -105,24 +110,51 @@ def parse_search_tags(response: str) -> str:
     """
     if "<think>" in response and "</think>" in response:
         end_index = response.index("</think>") + len("</think>")
-        # Everything after the </think> tag is considered the search tags
         tags = response[end_index:].strip()
         return tags
     else:
         return response.strip()
 
-# Step 5: Define a function to convert queries using the chain and parser
-def convert_to_search_tags(query: str) -> str:
-    print(f"\n🧠 [convert_to_search_tags] Input Query: {query}")
-    response = chain.invoke({"query": query})
-    full_output = response.content.strip()
-    tags_output = parse_search_tags(full_output)
-    print(f"🔁 [convert_to_search_tags] Output Tags: {tags_output}")
+# Step 5: Helper function to validate the output tags format using regex.
+def valid_tags(tags: str) -> bool:
+    """
+    Validates that the output is one to six colon-separated tokens composed of lowercase letters, numbers, and hyphens.
+    This allows up to five search tags and optionally one target tag.
+    """
+    pattern = r'^[a-z0-9-]+(?::[a-z0-9-]+){0,5}$'
+    return re.match(pattern, tags) is not None
+
+# Step 6: Define an iterative conversion function that refines the output if needed.
+def iterative_convert_to_search_tags(query: str, max_iterations: int = 2) -> str:
+    print(f"\n🧠 [iterative_convert_to_search_tags] Input Query: {query}")
+    refined_query = query
+    for iteration in range(max_iterations):
+        print(f"\n🔄 Iteration {iteration+1}")
+        response = chain.invoke({"query": refined_query})
+        full_output = response.content.strip()
+        tags_output = parse_search_tags(full_output)
+        print(f"Output Tags: {tags_output}")
+        if valid_tags(tags_output):
+            print("✅ Valid tags format detected.")
+            return tags_output
+        else:
+            print("⚠️ Invalid tags format. Requesting refinement...")
+            refined_query = f"{query}\nPlease refine your answer so that the output strictly matches the format: tag1:tag2[:tag3[:tag4[:tag5[:target-language]]]]."
+    print("Final output (may be invalid):", tags_output)
     return tags_output
 
 # Example usage
 if __name__ == "__main__":
-    user_query = "I am looking for repos around finetuning gemini models mainly 1.5 flash 002"
-    github_query = convert_to_search_tags(user_query)
-    print("🔍 GitHub Search Query:")
-    print(github_query)
+    # Example queries for testing:
+    example_queries = [
+        "I am looking for repositories for data augmentation pipelines for fine-tuning LLMs",  # Default (Python)
+        "Find repositories implementing data augmentation pipelines in JavaScript",          # Should return target-javascript
+        "Searching for tools for instruction-based finetuning for LLaMA 2",                   # Default (Python)
+        "Looking for open-source libraries for object detection using YOLO",                 # Default (Python)
+        "Repos implementing chatbots in JavaScript with self-reflection capabilities"         # Should return target-javascript
+    ]
+    
+    for q in example_queries:
+        github_query = iterative_convert_to_search_tags(q)
+        print("\n🔍 GitHub Search Query:")
+        print(github_query)
