@@ -7,5 +7,6 @@ faiss-cpu
 torch
 sentence-transformers
 requests
+spaces
 python-dotenv
 langgraph-cli[inm]>=0.155

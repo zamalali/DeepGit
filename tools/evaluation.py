@@ -397,7 +397,7 @@ agent = workflow.compile()
 # Execute the Agent Workflow
 # ------------------------------------------------------------------
 initial_state = {
-    "original_query": "I am researching the application of Chain of Thought prompting for improving reasoning in large language models within a Python environment."
+    "original_query": "I am looking for finetuning gemini models."
 }
 result = agent.invoke(initial_state)
 
