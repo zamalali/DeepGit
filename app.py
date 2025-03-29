@@ -265,7 +265,5 @@ with gr.Blocks(
     )
 
     gr.HTML(footer)
-    demo.queue(max_size=10).launch(share=True)
+demo.queue(max_size=10).launch(share=True)
 
-if __name__ == "__main__":
-    demo.launch(share=True)
