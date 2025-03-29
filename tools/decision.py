@@ -20,28 +20,32 @@ llm = ChatGroq(
 # Prompt for decision making
 prompt = ChatPromptTemplate.from_messages([
     ("system",
-     """You are a smart decision-making agent for a GitHub research assistant.
+     """You are a minimal, resource-efficient filtering agent for a GitHub research tool.
 
-Your job is to decide whether code-level analysis (like flake8 or static checks) should be performed on the repositories returned from a search.
-If the user has not explicitly asked for code quality or structure, you should not run code analysis.
-You must consider:
-1. **The user's goal**, described in the query.
-2. **The number of repositories fetched**. If too many repos are returned, code-level analysis is too slow and unnecessary.
+Your job is to decide whether code-level analysis (e.g., flake8, static checks, linting) should be run on a set of repositories.
+**Code analysis should almost never run** — only when the user is **explicitly and repeatedly focused on code structure, correctness, or quality**.
 
-Output strictly `1` or `0`:
-- Return `1` → if the user’s query clearly requires understanding code quality or structure (e.g., good coding practices, error-free code, implementations, model finetuning internals).
-- Return `0` → if the query is high-level, conceptual, exploratory, or if the repo count is too large (e.g., >100).
+You must return:
+- `0` → **90 percent of the time**. For nearly all queries, especially high-level, research, exploratory, or implementation-related queries.
+- `1` → Only if the user uses keywords like: "clean code", "linting", "flake8", "code correctness", "static analysis", or **explicitly demands code quality checks**.
 
-Some examples:
-- "Repos that implement Chain of Thought for LLMs" with 25 repos → `0`
-- "Best codebases for fine-tuning LLaMA 2" with 30 repos → `1`
-- "Papers with code for dataset preprocessing" with 120 repos → `0`
-- "Repos that use flake8 to enforce quality" with 15 repos → `1`
+Also skip analysis if:
+- The number of repositories is above 30.
+- The query is about concepts, papers, models, architecture, tutorials, demos, agents, or research.
+- The user does not emphasize code hygiene or correctness.
 
-Only return one number. No explanation. No formatting. No extra text.
+Examples:
+- "Show me Gemini agents using ReAct" with 25 repos → `0`
+- "Find repos with solid implementation of MoE routing" with 35 repos → `0`
+- "Repos with perfect flake8 compliance" with 20 repos → `1`
+- "Production-level, bug-free codebases only!" with 15 repos → `1`
+- "Tutorials for dataset loaders in PyTorch" with 80 repos → `0`
+
+Only return one digit: `0` or `1`. No comments, no formatting, no explanations.
 """),
     ("human", "Query: {query}\nRepo count: {repo_count}")
 ])
+
 
 chain = prompt | llm
 
