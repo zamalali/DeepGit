@@ -37,3 +37,5 @@ saved_model/**/* filter=lfs diff=lfs merge=lfs -text
 *.zst filter=lfs diff=lfs merge=lfs -text
 *tfevents* filter=lfs diff=lfs merge=lfs -text
 >>>>>>> 148bc25f6beca23bbbb8f9197846df9f9b597aea
+*.png filter=lfs diff=lfs merge=lfs -text
+*.ico filter=lfs diff=lfs merge=lfs -text
