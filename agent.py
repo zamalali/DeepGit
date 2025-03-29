@@ -23,7 +23,7 @@ import stat
 # Import node functions from the tools directory.
 from tools.convert_query import convert_searchable_query
 from tools.github import ingest_github_repos
-from tools.dense_retrieval import neural_dense_retrieval
+from tools.dense_retrieval import hybrid_dense_retrieval
 from tools.cross_encoder_reranking import cross_encoder_reranking
 from tools.filtering import threshold_filtering
 from tools.activity_analysis import repository_activity_analysis
@@ -106,7 +106,7 @@ builder = StateGraph(
 
 builder.add_node("convert_searchable_query", convert_searchable_query)
 builder.add_node("ingest_github_repos", ingest_github_repos)
-builder.add_node("neural_dense_retrieval", neural_dense_retrieval)
+builder.add_node("neural_dense_retrieval", hybrid_dense_retrieval)
 builder.add_node("cross_encoder_reranking", cross_encoder_reranking)
 builder.add_node("threshold_filtering", threshold_filtering)
 builder.add_node("repository_activity_analysis", repository_activity_analysis)
