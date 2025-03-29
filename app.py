@@ -205,7 +205,7 @@ def stream_workflow(topic):
 # App UI Setup
 # ---------------------------
 with gr.Blocks(
-    theme="gstaff/sketch",
+    gr.themes.Default(),
     css="""
         #main_container { margin: auto; max-width: 900px; }
         footer, footer * {
@@ -265,5 +265,5 @@ with gr.Blocks(
     )
 
     gr.HTML(footer)
-demo.queue(max_size=10).launch(share=True)
+demo.queue(max_size=10).launch()
 
