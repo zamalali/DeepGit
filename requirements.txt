@@ -1,12 +1,11 @@
-langchain-groq==0.2.4
-langchain-core==0.3.37
-langchain==0.3.15
-numpy
-langgraph
-faiss-cpu
-torch
-sentence-transformers
-requests
-spaces
-python-dotenv
-langgraph-cli[inm]>=0.155
+# ✅ Core dependencies
+gradio==4.18.0
+langchain==0.1.14
+langchain-core==0.1.33
+langchain-community==0.0.28
+langchain-groq==0.3.1
+sentence-transformers==3.4.1
+pydantic==1.10.13
+torch==2.2.1
+faiss-cpu==1.7.4
+spaces==0.34.0
