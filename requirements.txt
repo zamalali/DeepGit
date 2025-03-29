@@ -9,3 +9,4 @@ gradio==5.23.1
 langgraph==0.2.62
 langchain_groq==0.2.4
 langchain_core==0.3.47
+rank_bm25==0.2.2
