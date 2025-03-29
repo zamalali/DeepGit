@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <h1 align="center">
   <img src="https://img.icons8.com/?size=100&id=118557&format=png&color=000000" width="72" style="vertical-align: middle;"/> DeepGit
 </h1>
@@ -46,22 +45,3 @@ Presents ranked repositories to the user with concise summaries and justificatio
 - Build an intelligent layer over GitHub for research-focused developers.
 - Open-source the entire workflow to promote transparent research.
 
----
-
-Want to contribute or give feedback? Reach out or open an issue!
-
-=======
----
-title: DeepGit
-emoji: 📈
-colorFrom: green
-colorTo: pink
-sdk: gradio
-sdk_version: 5.23.1
-app_file: app.py
-pinned: false
-license: apache-2.0
----
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
->>>>>>> 148bc25f6beca23bbbb8f9197846df9f9b597aea
