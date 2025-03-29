@@ -28,5 +28,5 @@ jobs:
 
       - name: Tag and Push Docker image
         run: |
-          docker tag deepgit-app zamalali/deepgit-app:latest
-          docker push zamalali/deepgit-app:latest
+          docker tag deepgit-app at384/deepgit-app:latest
+          docker push at384/deepgit-app:latest
