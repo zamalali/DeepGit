@@ -1,4 +1,3 @@
-# agent.py
 import os
 import base64
 import requests
