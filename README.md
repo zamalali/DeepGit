@@ -71,6 +71,8 @@ DeepGit provides an intuitive interface for exploring repository recommendations
 
 ### 🛠️ Running DeepGit
 
+For a detailed documentation on using DeepGit, Check out [here](docs).
+
 DeepGit leverages Langgraph for orchestration. To launch the Langsmith dashboard and start the workflow, simply run:
 
 ```bash
@@ -84,3 +86,7 @@ To run DeepGit locally, simply execute:
 
 ```bash
 python app.py
+```
+
+### DeepGit on Docker
+For instructions on using Docker with DeepGit, please refer to our [Docker Documentation](docs/docker.md).
