@@ -69,6 +69,56 @@ DeepGit provides an intuitive interface for exploring repository recommendations
 
 ---
 
+
+### 🔧 Recommended Environment
+
+- **Python:** 3.11+ (The repo has been tested on Python 3.11.x)
+- **pip:** 24.0+ (Ensure you have an up-to-date pip version)
+
+---
+
+### 👨‍🏭 Setup Instructions
+
+#### 1. Clone the Repository
+```bash
+git clone https://github.com/zamalali/DeepGit.git
+cd DeepGit
+```
+
+#### 2. Create a Virtual Environment (Recommended)
+```bash
+python3 -m venv venv
+source venv/bin/activate   # On Windows: venv\Scripts\activate
+```
+
+#### 3. Upgrade pip (Optional but Recommended)
+```bash
+pip install --upgrade pip
+```
+
+#### 4. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+#### 5. 🚀 Running DeepGit via App
+
+To run DeepGit locally, simply execute:
+
+```bash
+python app.py
+```
+
+
+### 🛠️ Troubleshooting
+
+- **Python Version:** Use Python 3.11 or higher as the repo has been tested on Python 3.11.x.
+- **pip Version:** Make sure you’re running pip 24.0 or later.
+- **Dependency Issues:** If you encounter any, try reinstalling in a new virtual environment.
+
+
+---
+
 ### 🛠️ Running DeepGit
 
 For a detailed documentation on using DeepGit, Check out [here](docs).
@@ -80,13 +130,6 @@ langgraph dev
 ```
 This command opens the Langsmith dashboard where you can enter your raw queries in a JSON snippet and monitor the entire agentic workflow.
 
-### 🚀 Running DeepGit via App
-
-To run DeepGit locally, simply execute:
-
-```bash
-python app.py
-```
 
 ### DeepGit on Docker
 For instructions on using Docker with DeepGit, please refer to our [Docker Documentation](docs/docker.md).
