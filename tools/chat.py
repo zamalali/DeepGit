@@ -126,19 +126,19 @@ def valid_tags(tags: str) -> bool:
 
 # Step 6: Define an iterative conversion function that refines the output if needed.
 def iterative_convert_to_search_tags(query: str, max_iterations: int = 2) -> str:
-    print(f"\n🧠 [iterative_convert_to_search_tags] Input Query: {query}")
+    print(f"\n[iterative_convert_to_search_tags] Input Query: {query}")
     refined_query = query
     for iteration in range(max_iterations):
-        print(f"\n🔄 Iteration {iteration+1}")
+        print(f"\nIteration {iteration+1}")
         response = chain.invoke({"query": refined_query})
         full_output = response.content.strip()
         tags_output = parse_search_tags(full_output)
         print(f"Output Tags: {tags_output}")
         if valid_tags(tags_output):
-            print("✅ Valid tags format detected.")
+            print("Valid tags format detected.")
             return tags_output
         else:
-            print("⚠️ Invalid tags format. Requesting refinement...")
+            print("Invalid tags format. Requesting refinement...")
             refined_query = f"{query}\nPlease refine your answer so that the output strictly matches the format: tag1:tag2[:tag3[:tag4[:tag5[:target-language]]]]."
     print("Final output (may be invalid):", tags_output)
     return tags_output
@@ -156,5 +156,5 @@ if __name__ == "__main__":
     
     for q in example_queries:
         github_query = iterative_convert_to_search_tags(q)
-        print("\n🔍 GitHub Search Query:")
+        print("\nGitHub Search Query:")
         print(github_query)

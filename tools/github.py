@@ -1,9 +1,11 @@
+# tools/github.py
 import os
 import base64
 import logging
 import asyncio
-import httpx
 from pathlib import Path
+import httpx
+from tools.mcp_adapter import mcp_adapter  # Import our MCP adapter
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +15,7 @@ FILE_CONTENT_CACHE = {}
 async def fetch_readme_content(repo_full_name: str, headers: dict, client: httpx.AsyncClient) -> str:
     readme_url = f"https://api.github.com/repos/{repo_full_name}/readme"
     try:
-        response = await client.get(readme_url, headers=headers)
+        response = await mcp_adapter.fetch(readme_url, headers=headers, client=client)
         if response.status_code == 200:
             readme_data = response.json()
             content = readme_data.get('content', '')
@@ -24,11 +26,10 @@ async def fetch_readme_content(repo_full_name: str, headers: dict, client: httpx
     return ""
 
 async def fetch_file_content(download_url: str, client: httpx.AsyncClient) -> str:
-    # Return cached result if available
     if download_url in FILE_CONTENT_CACHE:
         return FILE_CONTENT_CACHE[download_url]
     try:
-        response = await client.get(download_url)
+        response = await mcp_adapter.fetch(download_url, client=client)
         if response.status_code == 200:
             text = response.text
             FILE_CONTENT_CACHE[download_url] = text
@@ -41,17 +42,15 @@ async def fetch_directory_markdown(repo_full_name: str, path: str, headers: dict
     md_content = ""
     url = f"https://api.github.com/repos/{repo_full_name}/contents/{path}"
     try:
-        response = await client.get(url, headers=headers)
+        response = await mcp_adapter.fetch(url, headers=headers, client=client)
         if response.status_code == 200:
             items = response.json()
-            # Create concurrent tasks for each markdown file
             tasks = []
             for item in items:
                 if item["type"] == "file" and item["name"].lower().endswith(".md"):
                     tasks.append(fetch_file_content(item["download_url"], client))
             if tasks:
                 results = await asyncio.gather(*tasks, return_exceptions=True)
-                # Combine markdown content from each file
                 for item, content in zip(items, results):
                     if item["type"] == "file" and item["name"].lower().endswith(".md") and not isinstance(content, Exception):
                         md_content += f"\n\n# {item['name']}\n" + content
@@ -61,11 +60,10 @@ async def fetch_directory_markdown(repo_full_name: str, path: str, headers: dict
 
 async def fetch_repo_documentation(repo_full_name: str, headers: dict, client: httpx.AsyncClient) -> str:
     doc_text = ""
-    # Launch README fetching concurrently
     readme_task = asyncio.create_task(fetch_readme_content(repo_full_name, headers, client))
     root_url = f"https://api.github.com/repos/{repo_full_name}/contents"
     try:
-        response = await client.get(root_url, headers=headers)
+        response = await mcp_adapter.fetch(root_url, headers=headers, client=client)
         if response.status_code == 200:
             items = response.json()
             tasks = []
@@ -100,14 +98,13 @@ async def fetch_github_repositories(query: str, max_results: int, per_page: int,
                 "page": page
             }
             try:
-                response = await client.get(url, headers=headers, params=params)
+                response = await mcp_adapter.fetch(url, headers=headers, params=params, client=client)
                 if response.status_code != 200:
                     logger.error(f"Error {response.status_code}: {response.json().get('message')}")
                     break
                 items = response.json().get('items', [])
                 if not items:
                     break
-                # Concurrently fetch documentation for each repo
                 tasks = []
                 for repo in items:
                     full_name = repo.get('full_name', '')
@@ -138,12 +135,10 @@ async def ingest_github_repos_async(state, config) -> dict:
         "Authorization": f"token {os.getenv('GITHUB_API_KEY')}",
         "Accept": "application/vnd.github.v3+json"
     }
-    # Parse the searchable query tokens.
     keyword_list = [kw.strip() for kw in state.searchable_query.split(":") if kw.strip()]
     logger.info(f"Searchable keywords (raw): {keyword_list}")
     
-    # Determine target language from tokens.
-    target_language = "python"  # default
+    target_language = "python"
     filtered_keywords = []
     for kw in keyword_list:
         if kw.startswith("target-"):
@@ -154,10 +149,8 @@ async def ingest_github_repos_async(state, config) -> dict:
     logger.info(f"Filtered keywords: {keyword_list} | Target language: {target_language}")
     
     all_repos = []
-    # Import AgentConfiguration from agent.py.
     from agent import AgentConfiguration
     agent_config = AgentConfiguration.from_runnable_config(config)
-    # Fetch repositories concurrently for each keyword.
     tasks = []
     for keyword in keyword_list:
         query = f"{keyword} language:{target_language}"
@@ -179,5 +172,4 @@ async def ingest_github_repos_async(state, config) -> dict:
     return {"repositories": state.repositories}
 
 def ingest_github_repos(state, config):
-    # Synchronous wrapper for the asynchronous function.
     return asyncio.run(ingest_github_repos_async(state, config))
