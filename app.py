@@ -72,10 +72,16 @@ title = """
 """
 
 description = """<p align="center">
-DeepGit is an agentic workflow built to perform advanced semantic research across GitHub repositories.<br/>
-Enter your research topic below and let DeepGit intelligently analyze, rank, and explain the most relevant repositories for your query.<br/>
-This may take a few minutes as DeepGit orchestrates multiple tools including Query Expansion, Semantic Retrieval, Cross-Encoder Ranking, Codebase Mapping, and Community Insight modules.
+<strong>DeepGit</strong> is a multi‑stage research agent that digs through GitHub so you don’t have to.<br/>
+Just describe what you’re hunting for — and, if you like, add a hint about your hardware (“GPU‑poor”, “mobile‑only”, etc.).<br/><br/>
+Behind the scenes, DeepGit now orchestrates an upgraded tool‑chain:<br/>
+• Query Expansion&nbsp;→&nbsp;ColBERT‑v2 token‑level Semantic Retrieval&nbsp;→&nbsp;Cross‑Encoder Re‑ranking<br/>
+• Hardware‑aware Dependency Filter that discards repos your device can’t run<br/>
+• Codebase & Community Insight modules for quality and activity signals<br/><br/>
+Feed it a topic below; the agent will analyze, rank, and explain the most relevant, <em>runnable</em> repositories.  
+A short wait earns you a gold‑curated list.
 </p>"""
+
 
 consent_text = """
 <div style="padding: 10px; text-align: center;">
