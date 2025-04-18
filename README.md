@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="assets/cover.png" alt="DeepGit Cover Image" width="40%" />
+  <img src="assets/cover.png" alt="DeepGit Cover Image" width="60%" />
 </h1>
 
 
