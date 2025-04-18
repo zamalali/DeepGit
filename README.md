@@ -1,5 +1,5 @@
 <h1 align="center" style="display: flex; justify-content: center; align-items: center; gap: 12px;">
-  <img src="assets/logo.ico" alt="DeepGit Logo" width="64" height="64" style="vertical-align: middle;" />
+  <img src="assets/logo.ico" alt="DeepGit Logo" width="94" height="94" style="vertical-align: middle;" />
   DeepGit
 </h1>
 
