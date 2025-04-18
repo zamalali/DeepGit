@@ -1,19 +1,27 @@
-# tools/dependency_analysis.py
-import os, logging, httpx, toml, base64
+# -*- coding: utf-8 -*-
+import base64
+import httpx
+import logging
+import os
+import toml
 from functools import lru_cache
-from tools.chat import chain     
+from tools.chat import chain
 
 logger = logging.getLogger(__name__)
 
 QUESTION_TMPL = (
-    "Given the following dependency list, can this project run on {hw}? "
-    "Answer YES or NO and a short reason.\n\nDependencies:\n{deps}"
+    "Given the following Python dependencies, can this project run on {hw}? "
+    "Answer YES or NO and one short reason.\n\nDependencies:\n{deps}"
 )
 
-@lru_cache(maxsize=1024)
+# --------------------------------------------------------------------------- #
+# GitHub helper – cached raw file fetch
+# --------------------------------------------------------------------------- #
+@lru_cache(maxsize=2048)
 def _gh_raw(owner: str, repo: str, path: str, token: str) -> str | None:
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-    r = httpx.get(url, headers={"Authorization": f"token {token}"})
+    headers = {"Authorization": f"token {token}"} if token else {}
+    r = httpx.get(url, headers=headers)
     if r.status_code != 200:
         return None
     data = r.json()
@@ -22,42 +30,65 @@ def _gh_raw(owner: str, repo: str, path: str, token: str) -> str | None:
     return data.get("content", "")
 
 def _collect_deps(owner: str, repo: str, token: str) -> list[str]:
-    reqs = _gh_raw(owner, repo, "requirements.txt", token) or ""
-    py   = _gh_raw(owner, repo, "pyproject.toml",  token) or ""
-    deps = [l.strip() for l in reqs.splitlines() if l.strip() and not l.startswith("#")]
+    """Return a flat list of dependency strings (possibly empty)."""
+    deps: list[str] = []
+
+    # requirements.txt
+    req = _gh_raw(owner, repo, "requirements.txt", token) or ""
+    deps += [ln.strip() for ln in req.splitlines() if ln.strip() and not ln.startswith("#")]
+
+    # pyproject.toml (Poetry style)
+    py = _gh_raw(owner, repo, "pyproject.toml", token) or ""
     if py:
         try:
-            deps += list(toml.loads(py).get("tool",{}).get("poetry",{}).get("dependencies",{}).keys())
+            deps += list(
+                toml.loads(py).get("tool", {})
+                               .get("poetry", {})
+                               .get("dependencies", {})
+                               .keys()
+            )
         except Exception:
             pass
     return deps
 
+# --------------------------------------------------------------------------- #
+# LangGraph node
+# --------------------------------------------------------------------------- #
 def dependency_analysis(state, config):
-    hw   = state.hardware_spec          # None means “no constraint”
-    cand = state.filtered_candidates
-    if not hw:
-        state.hardware_filtered = cand
-        return {"hardware_filtered": cand}
+    hardware = state.hardware_spec       # None  → no filtering
+    candidates = state.filtered_candidates
+
+    if not hardware:
+        state.hardware_filtered = candidates
+        logger.info("[Deps] no hardware constraint – skipping check")
+        return {"hardware_filtered": candidates}
 
     token = os.getenv("GITHUB_API_KEY", "")
-    kept  = []
+    kept, dropped = [], []
 
-    for repo in cand:
+    for repo in candidates:
         full = repo.get("full_name", "")
         if "/" not in full:
-            kept.append(repo); continue
-        o, n = full.split("/", 1)
-
-        deps = _collect_deps(o, n, token)
-        if not deps:                    # empty list = assume lightweight
-            kept.append(repo); continue
-
-        prompt = QUESTION_TMPL.format(hw=hw, deps=", ".join(deps[:25]))
-        ans    = chain.invoke({"query": prompt}).content.strip().split()[0].upper()
-        if ans == "YES":
             kept.append(repo)
-        else:
-            logger.info(f"[Deps] drop {full} for {hw}")
+            continue
 
+        owner, name = full.split("/", 1)
+        deps = _collect_deps(owner, name, token)
+
+        if not deps:                      # assume lightweight if no deps
+            kept.append(repo)
+            continue
+
+        prompt = QUESTION_TMPL.format(hw=hardware, deps=", ".join(deps[:30]))
+        answer = chain.invoke({"query": prompt}).content.strip().lower()
+        verdict = answer.split()[0] if answer else "yes"
+
+        if verdict.startswith("y"):
+            kept.append(repo)
+            repo["hardware_reason"] = answer
+        else:
+            dropped.append(full)
+
+    logger.info(f"[Deps] kept {len(kept)}/{len(candidates)}  (dropped {len(dropped)})")
     state.hardware_filtered = kept
     return {"hardware_filtered": kept}
