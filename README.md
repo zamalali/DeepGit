@@ -14,6 +14,14 @@
 
 ---
 
+---
+### Try out the Lite version here 🧑‍🎓
+
+DeepGit-lite is a lightweight version of DeepGit running on zero GPU on Hugging Face Space [here.](https://huggingface.co/spaces/zamal/DeepGit-lite) <br>
+It may not perform as well as the full version, but it's great for a quick first-hand preview.
+
+---
+
 
 ### DeepGit 2.0 🤯 — now **hardware‑aware** & **ColBERT‑powered**
 
