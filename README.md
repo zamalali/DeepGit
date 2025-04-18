@@ -1,7 +1,7 @@
-<h1 align="center" style="display: flex; justify-content: center; align-items: center; gap: 12px;">
-  <img src="assets/logo.ico" alt="DeepGit Logo" width="94" height="94" style="vertical-align: middle;" />
-  DeepGit
+<h1 align="center">
+  <img src="assets/cover.png" alt="DeepGit Cover Image" width="40%" />
 </h1>
+
 
 
 <p align="center">
