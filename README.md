@@ -1,9 +1,11 @@
-<h1 align="center">
-  <img src="https://img.icons8.com/?size=100&id=118557&format=png&color=000000" width="72" style="vertical-align: middle;"/> DeepGit
+<h1 align="center" style="display: flex; justify-content: center; align-items: center; gap: 12px;">
+  <img src="assets/logo.ico" alt="DeepGit Logo" width="64" height="64" style="vertical-align: middle;" />
+  DeepGit
 </h1>
 
+
 <p align="center">
-  <img src="assets/flow-1.png" alt="Langgraph Workflow Diagram" style="max-width: 800px; width: 100%; height: auto;" />
+  <img src="assets/workflow.png" alt="Langgraph Workflow Diagram" style="max-width: 800px; width: 100%; height: auto;" />
 </p>
 
 ## DeepGit
@@ -12,37 +14,52 @@
 
 ---
 
-## ⚙️ How It Works — Agentic Workflow
 
-When a user submits a query, the **DeepGit Orchestrator Agent** takes over, passing the query through a series of specialized tools:
+### DeepGit 2.0 🤯 — now **hardware‑aware** & **ColBERT‑powered**
 
-1. **Query Expansion Tool**  
-   Enhances vague user queries using language models to add specificity and context, enabling more accurate downstream retrieval.
+The latest release makes it even **deeper, smarter, and faster**:
 
-2. **Semantic Retrieval Tool**  
-   Leverages cutting-edge embedding models to semantically match the enhanced query against a wide array of GitHub repositories.
+| New feature | What it gives you |
+|-------------|------------------|
+| **⚛️ Multi‑dimensional ColBERT v2 embeddings** | Fine‑grained token‑level similarity for nuanced matches that single‑vector embeddings miss. |
+| **🔩 Smart Hardware Filter** | Tell DeepGit your device specs — CPU-only, low RAM, or mobile. It filters out repos that won’t run smoothly, so you only see ones that fit your setup. |
 
-3. **Documentation Intelligence Tool**  
-   Scrapes and interprets repository documentation (e.g., README files and additional markdowns) to understand the purpose, setup, and key features.
-
-4. **Codebase Mapping Tool**  
-   Analyzes the project’s file structure and technology stack to assess complexity, modularity, and suitability for the user’s needs.
-
-5. **Community Insight Tool**  
-   Aggregates social signals such as stars, forks, issues, and pull request activity to gauge real-world engagement and maturity.
-
-6. **Relevance Synthesis Tool**  
-   Combines insights from all modules to compute a final relevance score tailored to the user query.
-
-7. **Insight Delivery Module**  
-   Presents a ranked list of repositories with concise summaries and justifications, enabling smart discovery.
+DeepGit still unifies hybrid dense retrieval, cross‑encoder re‑ranking, activity & quality analysis—but now every step is both *smarter* and *leaner*.
 
 ---
+
+## ⚙️ How It Works — Agentic Workflow *v2*
+
+When the user submits a query, the **DeepGit Orchestrator Agent** triggers a relay of expert tools:
+
+1. **Query Expansion**  
+   An LLM turns your natural‑language question into high‑signal GitHub tags for precise searching.
+
+2. **Hardware Spec Detector**  
+   The same pass infers your wording for hints like “GPU‑poor”, “low‑memory”, or “mobile‑only” and records the constraint.
+
+3. **ColBERT‑v2 Semantic Retriever**  
+   Every README & doc block is embedded with multi‑dimensional token vectors; MaxSim scoring surfaces nuanced matches.
+
+4. **Cross‑Encoder Re‑ranker**  
+   A lightweight BERT (`MiniLM‑L‑6‑v2`) re‑orders the top K results for passage‑level accuracy.
+
+5. **Hardware‑aware Dependency Filter**  
+   The reasoning engine inspects each repo’s `requirements.txt` / `pyproject.toml` and discards any that can’t run on your declared hardware.
+
+6. **Community & Code Insight**  
+   Collects stars, forks, issue cadence, commit history, plus quick code‑quality metrics.
+
+7. **Multi‑factor Ranking & Delivery**  
+   Merges all scores into one ranking and serves a clean table with links, similarity %, and “Runs on cpu‑only” badges where relevant.
+
+---
+
 
 ## 🚀 Goals
 
 - **Uncover Hidden Gems:**  
-  Surface powerful but under-the-radar open-source tools.
+  Surface powerful but under-the-radar open-source tools. Now comes with hardware spec filter too.
 
 - **Empower Research:**  
   Build an intelligent discovery layer over GitHub tailored for research-focused developers.
