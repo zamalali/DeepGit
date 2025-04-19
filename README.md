@@ -2,11 +2,11 @@
   <img src="https://img.icons8.com/?size=100&id=118557&format=png&color=000000" width="72" style="vertical-align: middle;"/> DeepGit
 </h1>
 
-
-
 <p align="center">
   <img src="assets/workflow.png" alt="Langgraph Workflow Diagram" style="max-width: 800px; width: 100%; height: auto;" />
 </p>
+
+### DeepGit 2.0 🤯 — now **hardware‑aware** & **ColBERT‑powered**
 
 ## DeepGit
 
@@ -22,8 +22,6 @@ It may not perform as well as the full version, but it's great for a quick first
 
 ---
 
-
-### DeepGit 2.0 🤯 — now **hardware‑aware** & **ColBERT‑powered**
 
 The latest release makes it even **deeper, smarter, and faster**:
 
