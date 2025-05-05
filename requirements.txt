@@ -1,3 +1,4 @@
+toml>=0.10.2
 requests==2.32.3
 numpy==1.25.2
 python-dotenv==1.0.1
