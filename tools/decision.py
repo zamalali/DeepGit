@@ -1,21 +1,14 @@
-from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+import getpass
+from tools.llm_config import LLMConfig, LLMProvider
 
 # Load .env variables
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 if dotenv_path.exists():
     load_dotenv(dotenv_path)
-
-# LLM setup: DeepSeek-R1-Distill
-llm = ChatGroq(
-    model="deepseek-r1-distill-llama-70b",
-    temperature=0.3,
-    max_tokens=512,
-    max_retries=2,
-)
 
 # Prompt for decision making
 prompt = ChatPromptTemplate.from_messages([
@@ -46,12 +39,10 @@ Only return one digit: `0` or `1`. No comments, no formatting, no explanations.
     ("human", "Query: {query}\nRepo count: {repo_count}")
 ])
 
-
-chain = prompt | llm
-
-# Final function
-def should_run_code_analysis(query: str, repo_count: int) -> int:
+def should_run_code_analysis(query: str, repo_count: int, llm_config: LLMConfig) -> int:
     print(f"\n[Decision Maker] Query: {query} | Repo Count: {repo_count}")
+    llm = llm_config.get_llm(temperature=0.3, max_tokens=512)
+    chain = prompt | llm
     response = chain.invoke({"query": query, "repo_count": repo_count})
     
     full_output = response.content.strip()
@@ -69,10 +60,10 @@ def should_run_code_analysis(query: str, repo_count: int) -> int:
     print("[Decision Maker] Failed to extract a valid decision. Defaulting to 0.")
     return 0
 
-
 # Example usage
 if __name__ == "__main__":
     query = "I want to find a real quick guide on custom training yolo"
     repo_count = 34
-    decision = should_run_code_analysis(query, repo_count)
+    llm_config = LLMConfig(provider=LLMProvider.OPENAI)
+    decision = should_run_code_analysis(query, repo_count, llm_config)
     print("Should run code analysis?", decision)

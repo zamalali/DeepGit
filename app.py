@@ -4,7 +4,8 @@ import json
 import time
 import threading
 import logging
-from agent import graph  # Your DeepGit langgraph workflow
+from agent import graph, AgentStateInput  # Your DeepGit langgraph workflow
+from tools.llm_config import LLMProvider, LLMConfig
 
 # ---------------------------
 # Set environment variables to prevent thread/multiprocessing issues on macOS/Linux
@@ -81,11 +82,11 @@ title = """
 """
 
 description = """<p align="center">
-<strong>DeepGit</strong> is a multi‑stage research agent that digs through GitHub so you don’t have to.<br/>
-Just describe what you’re hunting for — and, if you like, add a hint about your hardware (“GPU‑poor”, “mobile‑only”, etc.).<br/><br/>
+<strong>DeepGit</strong> is a multi‑stage research agent that digs through GitHub so you don't have to.<br/>
+Just describe what you're hunting for — and, if you like, add a hint about your hardware ("GPU‑poor", "mobile‑only", etc.).<br/><br/>
 Behind the scenes, DeepGit now orchestrates an upgraded tool‑chain:<br/>
-• Query Expansion&nbsp;→&nbsp;ColBERT‑v2 token‑level Semantic Retrieval&nbsp;→&nbsp;Cross‑Encoder Re‑ranking<br/>
-• Hardware‑aware Dependency Filter that discards repos your device can’t run<br/>
+• Query Expansion → ColBERT‑v2 token‑level Semantic Retrieval → Cross‑Encoder Re‑ranking<br/>
+• Hardware‑aware Dependency Filter that discards repos your device can't run<br/>
 • Codebase & Community Insight modules for quality and activity signals<br/><br/>
 Feed it a topic below; the agent will analyze, rank, and explain the most relevant, <em>runnable</em> repositories.  
 A short wait earns you a gold‑curated list.
@@ -178,19 +179,24 @@ def parse_result_to_html(raw_result: str) -> str:
 # ---------------------------
 # Background Workflow Runner
 # ---------------------------
-def run_workflow(topic, result_container):
+def run_workflow(topic, provider, result_container):
     """Runs the DeepGit workflow and stores the raw result."""
-    initial_state = {"user_query": topic}
+    # Configure the LLM provider
+    llm_config = LLMConfig(provider=LLMProvider(provider))
+    initial_state = AgentStateInput(
+        user_query=topic,
+        llm_config=llm_config
+    )
     result = graph.invoke(initial_state)
     result_container["raw_result"] = result.get("final_results", "No results returned.")
 
-def stream_workflow(topic):
+def stream_workflow(topic, provider):
     # Clear the global log buffer
     with LOG_BUFFER_LOCK:
         LOG_BUFFER.clear()
     result_container = {}
     # Run the workflow in a background thread
-    workflow_thread = threading.Thread(target=run_workflow, args=(topic, result_container))
+    workflow_thread = threading.Thread(target=run_workflow, args=(topic, provider, result_container))
     workflow_thread.start()
     
     last_index = 0
@@ -247,6 +253,12 @@ with gr.Blocks(
             placeholder="Enter your research topic here, e.g., 'Instruction-based fine-tuning for LLaMA 2 using chain-of-thought prompting in Python.' ",
             lines=3
         )
+        provider_dropdown = gr.Dropdown(
+            label="LLM Provider",
+            choices=[LLMProvider.OPENAI.value, LLMProvider.GROQ.value],
+            value=LLMProvider.OPENAI.value,
+            info="Choose your preferred LLM provider"
+        )
         run_button = gr.Button("Run DeepGit", variant="primary")
         # Display the latest log line as status, and full log stream as details.
         status_display = gr.Markdown("")   
@@ -260,13 +272,13 @@ with gr.Blocks(
     agree_button.click(fn=enable_main, inputs=[], outputs=[consent_block, main_block], queue=False)
 
     # Generator-based runner for dynamic log streaming.
-    def stepwise_runner(topic):
-        for status, details in stream_workflow(topic):
+    def stepwise_runner(topic, provider):
+        for status, details in stream_workflow(topic, provider):
             yield status, details
 
     run_button.click(
         fn=stepwise_runner,
-        inputs=[research_input],
+        inputs=[research_input, provider_dropdown],
         outputs=[status_display, detail_display],
         api_name="deepgit",
         show_progress=True
@@ -274,7 +286,7 @@ with gr.Blocks(
 
     research_input.submit(
         fn=stepwise_runner,
-        inputs=[research_input],
+        inputs=[research_input, provider_dropdown],
         outputs=[status_display, detail_display],
         api_name="deepgit_submit",
         show_progress=True

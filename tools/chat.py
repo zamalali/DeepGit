@@ -1,22 +1,15 @@
 import os
 import re
-from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 from pathlib import Path
+import getpass
+from tools.llm_config import LLMConfig, LLMProvider
 
 # Load environment variables
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 if dotenv_path.exists():
     load_dotenv(dotenv_path)
-
-# Step 1: Instantiate the Groq model with appropriate settings.
-llm = ChatGroq(
-    model="deepseek-r1-distill-llama-70b",
-    temperature=0.3,
-    max_tokens=512,
-    max_retries=3,
-)
 
 # Step 2: Build the prompt with enhanced instructions for iterative thinking and target language detection.
 prompt = ChatPromptTemplate.from_messages([
@@ -99,8 +92,10 @@ Output must be ONLY the search tags separated by colons. Do not include any extr
     ("human", "{query}")
 ])
 
-# Step 3: Chain the prompt with the LLM.
-chain = prompt | llm
+# Create a default chain with OpenAI
+default_llm_config = LLMConfig(provider=LLMProvider.OPENAI)
+default_llm = default_llm_config.get_llm(temperature=0.3, max_tokens=512)
+chain = prompt | default_llm
 
 # Step 4: Define a function to parse the final search tags from the model's response.
 def parse_search_tags(response: str) -> str:
@@ -125,9 +120,12 @@ def valid_tags(tags: str) -> bool:
     return re.match(pattern, tags) is not None
 
 # Step 6: Define an iterative conversion function that refines the output if needed.
-def iterative_convert_to_search_tags(query: str, max_iterations: int = 2) -> str:
+def iterative_convert_to_search_tags(query: str, llm_config: LLMConfig, max_iterations: int = 2) -> str:
     print(f"\n[iterative_convert_to_search_tags] Input Query: {query}")
     refined_query = query
+    llm = llm_config.get_llm(temperature=0.3, max_tokens=512)
+    chain = prompt | llm
+    
     for iteration in range(max_iterations):
         print(f"\nIteration {iteration+1}")
         response = chain.invoke({"query": refined_query})
@@ -154,7 +152,8 @@ if __name__ == "__main__":
         "Repos implementing chatbots in JavaScript with self-reflection capabilities"         # Should return target-javascript
     ]
     
+    llm_config = LLMConfig(provider=LLMProvider.OPENAI)
     for q in example_queries:
-        github_query = iterative_convert_to_search_tags(q)
+        github_query = iterative_convert_to_search_tags(q, llm_config)
         print("\nGitHub Search Query:")
         print(github_query)

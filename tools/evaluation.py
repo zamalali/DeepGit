@@ -14,11 +14,10 @@ from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer, CrossEncoder
 import faiss
 
-from langchain_groq import ChatGroq
 from langchain_core.tools import tool
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
-
+from tools.llm_config import LLMConfig, LLMProvider
 
 # ---------------------------
 # Environment and .env Setup
@@ -26,6 +25,7 @@ from langgraph.graph import StateGraph, END
 # Resolve the path to the root directory's .env file
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=str(dotenv_path))
+
 # ------------------------------------------------------------------
 # Bitsandbytes & Environment Setup
 # ------------------------------------------------------------------
@@ -47,17 +47,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------
-# ChatGroq Setup (for query enhancement and justification)
-# ------------------------------------------------------------------
-llm_groq = ChatGroq(
-    model="llama-3.1-8b-instant",
-    temperature=0.2,
-    max_tokens=100,
-    timeout=15,
-    max_retries=2
-)
-
-# ------------------------------------------------------------------
 # GitHub Headers Setup
 # ------------------------------------------------------------------
 gh_headers = {
@@ -75,6 +64,7 @@ class AgentState(TypedDict):
     candidates: List[Dict[str, Any]]
     final_ranked: List[Dict[str, Any]]
     justifications: Dict[str, str]
+    llm_config: LLMConfig
 
 # ------------------------------------------------------------------
 # Helper Functions for Repository Documentation
@@ -137,7 +127,7 @@ def get_enhanced_query(original_query: str) -> str:
 # ------------------------------------------------------------------
 
 @tool
-def enhance_query_tool(original_query: str) -> str:
+def enhance_query_tool(original_query: str, llm_config: LLMConfig) -> str:
     """
     Enhances the query for GitHub search by adding technical keywords and context,
     then returns only a valid GitHub search query using GitHub search syntax.
@@ -149,11 +139,10 @@ Return ONLY the optimized query with no additional explanation."""
         ("system", "You are a helpful research assistant specializing in GitHub search."),
         ("human", prompt)
     ]
-    result = llm_groq.invoke(messages)
+    llm = llm_config.get_llm(temperature=0.2, max_tokens=100)
+    result = llm.invoke(messages)
     logger.info(f"Enhanced Query: {result}")
-    # Extract the query text (assuming it is returned in the 'content' field)
     return result.content if hasattr(result, "content") else str(result)
-
 
 @tool
 def fetch_github_repositories_tool(query: str, max_results: int = 1000, per_page: int = 100) -> List[Dict[str, Any]]:
@@ -313,7 +302,7 @@ def final_scoring_tool(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     return ranked
 
 @tool
-def justify_candidates_tool(candidates: List[Dict[str, Any]], top_n: int = 10) -> Dict[str, str]:
+def justify_candidates_tool(candidates: List[Dict[str, Any]], llm_config: LLMConfig, top_n: int = 10) -> Dict[str, str]:
     """
     Generates a brief justification for each of the top candidates.
     """
@@ -321,6 +310,7 @@ def justify_candidates_tool(candidates: List[Dict[str, Any]], top_n: int = 10) -
         logger.info("No candidates for justification. Returning empty dictionary.")
         return {}
     justifications = {}
+    llm = llm_config.get_llm(temperature=0.3, max_tokens=512)
     for repo in candidates[:top_n]:
         prompt = f"""You are a highly knowledgeable AI research assistant. In one to two lines, explain why the repository titled "{repo['title']}" is a good match for a query on Chain of Thought prompting in large language models within a Python environment. Mention key factors such as documentation quality, activity, and community validation if relevant.
 
@@ -335,7 +325,7 @@ Provide a concise justification:"""
             ("system", "You are a highly knowledgeable AI research assistant that can succinctly justify repository matches."),
             ("human", prompt)
         ]
-        result = llm_groq.invoke(messages)
+        result = llm.invoke(messages)
         justifications[repo["title"]] = result
         logger.info(f"Justification for {repo['title']}: {result}")
     return justifications

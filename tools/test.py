@@ -6,24 +6,15 @@ import shutil
 import stat
 from pathlib import Path
 from dotenv import load_dotenv
-from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from git import Repo
+import getpass
+from tools.llm_config import LLMConfig, LLMProvider
 
 # Load environment variable
 dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 if dotenv_path.exists():
     load_dotenv(dotenv_path)
-
-# ---------------------------
-# Step 1: Instantiate Groq model
-# ---------------------------
-llm = ChatGroq(
-    model="llama-3.1-8b-instant",
-    temperature=0.3,
-    max_tokens=128,
-    max_retries=2,
-)
 
 # ---------------------------
 # Step 2: Build the prompt
@@ -97,15 +88,12 @@ Output must be ONLY two search terms separated by a colon. No extra text. No bul
 ])
 
 # ---------------------------
-# Step 3: Chain model and prompt
-# ---------------------------
-chain = prompt | llm
-
-# ---------------------------
 # Step 4: Define a function to convert queries
 # ---------------------------
-def convert_to_search_tags(query: str) -> str:
+def convert_to_search_tags(query: str, llm_config: LLMConfig) -> str:
     print(f"\n🧠 [convert_to_search_tags] Input Query: {query}")
+    llm = llm_config.get_llm(temperature=0.3, max_tokens=128)
+    chain = prompt | llm
     response = chain.invoke({"query": query})
     print(f"🔁 [convert_to_search_tags] Output Tags: {response.content.strip()}")
     return response.content.strip()
@@ -184,6 +172,7 @@ def analyze_code_quality(repo_info):
 if __name__ == "__main__":
     # Test the search tag conversion
     user_query = "I am looking for repos around finetuning gemini models mainly 1.5 flash 002"
-    github_query = convert_to_search_tags(user_query)
+    llm_config = LLMConfig(provider=LLMProvider.OPENAI)
+    github_query = convert_to_search_tags(user_query, llm_config)
     print("🔍 GitHub Search Query:")
     print(github_query)

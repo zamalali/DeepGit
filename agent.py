@@ -7,6 +7,7 @@ from langgraph.graph import START, END, StateGraph
 from pydantic import BaseModel, Field
 from dataclasses import dataclass, field
 from typing import List, Any
+from tools.llm_config import LLMConfig, LLMProvider
 
 # ---------------------------
 # Import node functions
@@ -54,10 +55,12 @@ class AgentState:
     activity_candidates: List[Any] = field(default_factory=list)
     quality_candidates: List[Any] = field(default_factory=list)
     final_ranked: List[Any] = field(default_factory=list)
+    llm_config: LLMConfig = field(default_factory=lambda: LLMConfig(provider=LLMProvider.OPENAI))
 
 @dataclass(kw_only=True)
 class AgentStateInput:
     user_query: str = field(default="")
+    llm_config: LLMConfig = field(default_factory=lambda: LLMConfig(provider=LLMProvider.OPENAI))
 
 @dataclass(kw_only=True)
 class AgentStateOutput:
@@ -138,7 +141,8 @@ if __name__ == "__main__":
         user_query=(
             "I am looking for chain-of-thought prompting for reasoning models "
             "and I am GPU-poor, so I need something lightweight."
-        )
+        ),
+        llm_config=LLMConfig(provider=LLMProvider.OPENAI)
     )
     result = graph.invoke(initial)
     print(result["final_results"])
