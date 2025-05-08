@@ -1,8 +1,9 @@
 import pytest
 from tools.decision_maker import decision_maker
+from tools.llm_config import LLMConfig
 
 # Create a dummy should_run_code_analysis function.
-def dummy_should_run_code_analysis(query, repo_count):
+def dummy_should_run_code_analysis(query, repo_count, llm_config):
     # Return 1 if repo_count is less than 50, else 0.
     return 1 if repo_count < 50 else 0
 
