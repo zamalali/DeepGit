@@ -8,10 +8,14 @@ logger = logging.getLogger(__name__)
 def convert_searchable_query(state, config):
     # 1) Extract hardware_spec so we can remove it from the tags
     parse_hardware_spec(state, config)
-    hw = state.hardware_spec or ""
+    hw = getattr(state, "hardware_spec", None) or ""
 
     # 2) Generate the raw colon-separated tags
-    raw = iterative_convert_to_search_tags(state.user_query)
+    user_query = getattr(state, "user_query", None)
+    llm_config = getattr(state, "llm_config", None)
+    if not user_query or not llm_config:
+        raise ValueError("State must have user_query and llm_config attributes")
+    raw = iterative_convert_to_search_tags(user_query, llm_config)
 
     # 3) Filter out any tag that matches the hardware spec token
     filtered = [tag for tag in raw.split(":") if tag and tag != hw]

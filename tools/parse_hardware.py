@@ -1,6 +1,6 @@
 # tools/parse_hardware_spec.py
 import re, logging
-from tools.chat import chain 
+from langchain_core.prompts import ChatPromptTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -12,13 +12,18 @@ HARDWARE_PATTERNS = {
     "mobile":     [r"mobile", r"raspberry", r"android"],
 }
 
-PROMPT_TEMPLATE = (
-    "Extract any hardware constraints from the user query. "
-    "Return exactly one of: cpu-only, low-memory, mobile, NONE."
-)
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a hardware constraint detection expert."),
+    ("human", "Extract any hardware constraints from the user query. Return exactly one of: cpu-only, low-memory, mobile, NONE.\n\nUser query:\n{query}")
+])
 
 def parse_hardware_spec(state, config):
-    q = state.user_query.lower()
+    user_query = getattr(state, "user_query", None)
+    llm_config = getattr(state, "llm_config", None)
+    if not user_query or not llm_config:
+        raise ValueError("State must have user_query and llm_config attributes")
+    
+    q = user_query.lower()
 
     # 1) Fast heuristic
     for spec, patterns in HARDWARE_PATTERNS.items():
@@ -28,8 +33,9 @@ def parse_hardware_spec(state, config):
             return {"hardware_spec": spec}
 
     # 2) LLM fallback
-    full = f"{PROMPT_TEMPLATE}\n\nUser query:\n{state.user_query}"
-    resp = chain.invoke({"query": full}).content.strip().lower()
+    llm = llm_config.get_llm(temperature=0.3, max_tokens=128)
+    chain = prompt | llm
+    resp = chain.invoke({"query": user_query}).content.strip().lower()
     spec = resp if resp in VALID_SPECS else None
     logger.info(f"[Hardware] LLM  -> {spec}")
     state.hardware_spec = spec
