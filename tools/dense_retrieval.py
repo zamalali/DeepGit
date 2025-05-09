@@ -67,13 +67,17 @@ def _openai_dense_retrieval(state, agent_config):
         openai_scores = np.zeros(len(doc_embeddings))
     else:
         similarities = np.dot(doc_embeddings, query_embedding) / (doc_norms * query_norm)
-        openai_scores = (similarities + 1) / 2  # Normalize to 0-1 range
+        # Normalize to 0-1 range and ensure we don't have any NaN values
+        openai_scores = np.clip((similarities + 1) / 2, 0, 1)
+    
+    # Log some statistics about the scores
+    logger.info(f"OpenAI semantic scores - min: {np.min(openai_scores):.4f}, max: {np.max(openai_scores):.4f}, mean: {np.mean(openai_scores):.4f}")
     
     # Combine with BM25 scores
     alpha = 0.5  # Weight for dense vs sparse scores
     for i, doc in enumerate(state.bm25_ranked):
-        doc["dense_score"] = float(openai_scores[i])
-        doc["hybrid_score"] = alpha * doc["dense_score"] + (1 - alpha) * doc["bm25_score"]
+        doc["semantic_similarity"] = float(openai_scores[i])
+        doc["hybrid_score"] = alpha * doc["semantic_similarity"] + (1 - alpha) * doc["bm25_score"]
     
     # Sort by hybrid score
     state.semantic_ranked = sorted(state.bm25_ranked, key=lambda x: x["hybrid_score"], reverse=True)
@@ -107,13 +111,17 @@ def _colbert_dense_retrieval(state, agent_config):
         colbert_scores = torch.zeros(len(doc_embeddings))
     else:
         similarities = torch.mm(doc_embeddings, query_embedding.t()).squeeze() / (doc_norms * query_norm)
-        colbert_scores = (similarities + 1) / 2  # Normalize to 0-1 range
+        # Normalize to 0-1 range and ensure we don't have any NaN values
+        colbert_scores = torch.clamp((similarities + 1) / 2, 0, 1)
+    
+    # Log some statistics about the scores
+    logger.info(f"ColBERT semantic scores - min: {torch.min(colbert_scores):.4f}, max: {torch.max(colbert_scores):.4f}, mean: {torch.mean(colbert_scores):.4f}")
     
     # Combine with BM25 scores
     alpha = 0.5  # Weight for dense vs sparse scores
     for i, doc in enumerate(state.bm25_ranked):
-        doc["dense_score"] = float(colbert_scores[i])
-        doc["hybrid_score"] = alpha * doc["dense_score"] + (1 - alpha) * doc["bm25_score"]
+        doc["semantic_similarity"] = float(colbert_scores[i])
+        doc["hybrid_score"] = alpha * doc["semantic_similarity"] + (1 - alpha) * doc["bm25_score"]
     
     # Sort by hybrid score
     state.semantic_ranked = sorted(state.bm25_ranked, key=lambda x: x["hybrid_score"], reverse=True)

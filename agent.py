@@ -7,7 +7,7 @@ from langgraph.graph import START, END, StateGraph
 from pydantic import BaseModel, Field
 from dataclasses import dataclass, field
 from typing import List, Any
-from tools.llm_config import LLMConfig, LLMProvider
+from tools.llm_config import LLMConfig, LLMProvider, PipelineType
 
 # ---------------------------
 # Import node functions
@@ -88,6 +88,14 @@ class AgentConfiguration(BaseModel):
         cfg = (config or {}).get("configurable", {})
         raw = {k: os.environ.get(k.upper(), cfg.get(k)) for k in cls.__fields__.keys()}
         values = {k: v for k, v in raw.items() if v is not None}
+        
+        # Set provider-specific defaults
+        pipeline_type = values.get("pipeline_type", PipelineType.OPENAI_PIPELINE)
+        if pipeline_type == PipelineType.GROQ_PIPELINE:
+            values.setdefault("reranking_model", "llama2-7b-4096")  # Smaller Llama model
+        else:
+            values.setdefault("reranking_model", "gpt-3.5-turbo")
+            
         return cls(**values)
 
 # -------------------------------------------------------

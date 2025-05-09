@@ -88,9 +88,23 @@ def _openai_reranking(state, agent_config):
         # Postprocessing: Normalize scores to 0-1 range
         all_scores = [candidate["cross_encoder_score"] for candidate in candidates]
         max_score = max(all_scores) if all_scores else 1.0
-        if max_score > 0:
+        min_score = min(all_scores) if all_scores else 0.0
+        
+        # Log score statistics before normalization
+        logger.info(f"Cross-encoder scores before normalization - min: {min_score:.4f}, max: {max_score:.4f}")
+        
+        if max_score > min_score:
             for candidate in candidates:
-                candidate["cross_encoder_score"] /= max_score
+                # Normalize to 0-1 range using min-max scaling
+                candidate["cross_encoder_score"] = (candidate["cross_encoder_score"] - min_score) / (max_score - min_score)
+        else:
+            # If all scores are the same, set them to 0.5
+            for candidate in candidates:
+                candidate["cross_encoder_score"] = 0.5
+
+        # Log score statistics after normalization
+        norm_scores = [candidate["cross_encoder_score"] for candidate in candidates]
+        logger.info(f"Cross-encoder scores after normalization - min: {min(norm_scores):.4f}, max: {max(norm_scores):.4f}, mean: {sum(norm_scores)/len(norm_scores):.4f}")
 
         # Return top N candidates sorted by cross_encoder_score (descending)
         return sorted(candidates, key=lambda x: x["cross_encoder_score"], reverse=True)[:top_n]
