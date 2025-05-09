@@ -7,17 +7,23 @@ from langchain_core.language_models import BaseChatModel
 import getpass
 from pathlib import Path
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 class LLMProvider(str, Enum):
     OPENAI = "openai"
     GROQ = "groq"
 
-class LLMConfig:
-    def __init__(self, provider: LLMProvider = LLMProvider.OPENAI):
-        self.provider = provider
-        self._load_env()
-        self._validate_api_keys()
-        
+class PipelineType(str, Enum):
+    GROQ_PIPELINE = "groq_pipeline"  # Groq LLM + ColBERT + SentenceTransformer
+    OPENAI_PIPELINE = "openai_pipeline"  # OpenAI LLM + OpenAI Embeddings + OpenAI Reranking
+
+class LLMConfig(BaseModel):
+    provider: LLMProvider = Field(default=LLMProvider.OPENAI)
+    pipeline_type: PipelineType = Field(default=PipelineType.OPENAI_PIPELINE)
+    model: str = Field(default="gpt-3.5-turbo")
+    temperature: float = Field(default=0.7)
+    max_tokens: int = Field(default=1000)
+
     def _load_env(self):
         """Load environment variables from .env file"""
         dotenv_path = Path(__file__).resolve().parent.parent / ".env"
@@ -33,11 +39,7 @@ class LLMConfig:
             if "GROQ_API_KEY" not in os.environ:
                 os.environ["GROQ_API_KEY"] = getpass.getpass("Enter your Groq API key: ")
     
-    def get_llm(self, 
-                model_name: Optional[str] = None,
-                temperature: float = 0.3,
-                max_tokens: int = 512,
-                max_retries: int = 2) -> BaseChatModel:
+    def get_llm(self, **kwargs):
         """
         Get the configured LLM instance with the specified parameters.
         
@@ -45,24 +47,23 @@ class LLMConfig:
             model_name: Optional model name override
             temperature: Model temperature (0.0 to 1.0)
             max_tokens: Maximum tokens in response
-            max_retries: Number of retries on failure
             
         Returns:
             Configured LLM instance
         """
-        if self.provider == LLMProvider.OPENAI:
-            return OpenAIChat(
-                model=model_name or "gpt-3.5-turbo",
-                temperature=temperature,
-                max_tokens=max_tokens,
-                max_retries=max_retries
+        if self.provider == LLMProvider.GROQ:
+            from langchain_groq import ChatGroq
+            return ChatGroq(
+                model_name=self.model,
+                temperature=kwargs.get("temperature", self.temperature),
+                max_tokens=kwargs.get("max_tokens", self.max_tokens)
             )
-        elif self.provider == LLMProvider.GROQ:
-            return GroqChat(
-                model=model_name or "llama-3.1-8b-instant",
-                temperature=temperature,
-                max_tokens=max_tokens,
-                max_retries=max_retries
+        elif self.provider == LLMProvider.OPENAI:
+            from langchain_openai import ChatOpenAI
+            return ChatOpenAI(
+                model_name=self.model,
+                temperature=kwargs.get("temperature", self.temperature),
+                max_tokens=kwargs.get("max_tokens", self.max_tokens)
             )
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")

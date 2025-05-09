@@ -48,6 +48,7 @@ class AgentState:
     searchable_query: str = field(default="")
     hardware_spec: str = field(default="")               # extracted hardware hint
     repositories: List[Any] = field(default_factory=list)
+    bm25_ranked: List[Any] = field(default_factory=list)  # BM25 ranked results
     semantic_ranked: List[Any] = field(default_factory=list)
     reranked_candidates: List[Any] = field(default_factory=list)
     filtered_candidates: List[Any] = field(default_factory=list)
@@ -73,8 +74,14 @@ class AgentConfiguration(BaseModel):
     cross_encoder_top_n: int = Field(50, title="Cross‑encoder N", description="Top‑N after re‑rank")
     min_stars: int = Field(50, title="Min Stars", description="Minimum star count")
     cross_encoder_threshold: float = Field(5.5, title="CE Threshold", description="Cross‑encoder score cutoff")
-    sem_model_name: str = Field("all-mpnet-base-v2", title="SentenceTransformer model")
-    cross_encoder_model_name: str = Field("cross-encoder/ms-marco-MiniLM-L-6-v2", title="Cross‑encoder model")
+    
+    # OpenAI pipeline settings
+    embedding_model: str = Field("text-embedding-3-small", title="OpenAI Embedding Model", description="Model for dense retrieval")
+    reranking_model: str = Field("gpt-3.5-turbo", title="OpenAI Reranking Model", description="Model for semantic reranking")
+    
+    # Groq pipeline settings
+    colbert_model: str = Field("colbert-ir/colbertv2.0", title="ColBERT Model", description="Model for dense retrieval")
+    sentence_transformer_model: str = Field("sentence-transformers/all-MiniLM-L6-v2", title="Sentence Transformer Model", description="Model for semantic reranking")
 
     @classmethod
     def from_runnable_config(cls, config: Any = None) -> "AgentConfiguration":
