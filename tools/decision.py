@@ -1,21 +1,10 @@
-from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 import os
-from dotenv import load_dotenv
-from pathlib import Path
 
-# Load .env variables
-dotenv_path = Path(__file__).resolve().parent.parent / ".env"
-if dotenv_path.exists():
-    load_dotenv(dotenv_path)
+from tools.llm_provider import create_llm
 
-# LLM setup: DeepSeek-R1-Distill
-llm = ChatGroq(
-    model="deepseek-r1-distill-llama-70b",
-    temperature=0.3,
-    max_tokens=512,
-    max_retries=2,
-)
+# LLM setup: configurable provider (Groq default, or MiniMax via env)
+llm = create_llm(temperature=0.3, max_tokens=512, max_retries=2)
 
 # Prompt for decision making
 prompt = ChatPromptTemplate.from_messages([
