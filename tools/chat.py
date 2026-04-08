@@ -1,22 +1,13 @@
 import os
 import re
-from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-from dotenv import load_dotenv
-from pathlib import Path
 
-# Load environment variables
-dotenv_path = Path(__file__).resolve().parent.parent / ".env"
-if dotenv_path.exists():
-    load_dotenv(dotenv_path)
+from tools.llm_provider import create_llm
 
-# Step 1: Instantiate the Groq model with appropriate settings.
-llm = ChatGroq(
-    model="deepseek-r1-distill-llama-70b",
-    temperature=0.3,
-    max_tokens=512,
-    max_retries=3,
-)
+# Step 1: Instantiate the LLM via the configurable provider factory.
+# Set LLM_PROVIDER=minimax and MINIMAX_API_KEY to use MiniMax,
+# or leave defaults for Groq.
+llm = create_llm(temperature=0.3, max_tokens=512, max_retries=3)
 
 # Step 2: Build the prompt with enhanced instructions for iterative thinking and target language detection.
 prompt = ChatPromptTemplate.from_messages([
