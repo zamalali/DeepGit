@@ -1,0 +1,43 @@
+spec_version: "0.1.0"
+name: deep-git
+version: 2.0.0
+description: >
+  DeepGit is an advanced LangGraph-based agentic research workflow that performs
+  deep, intelligent discovery of GitHub repositories. Given a natural-language query
+  (and optional hardware constraints), it expands the query into high-signal GitHub
+  tags, retrieves candidates via hybrid dense retrieval (ColBERT v2 + BM25 + FAISS),
+  re-ranks results with a cross-encoder, filters by dependency compatibility and
+  hardware spec, and delivers a multi-factor ranked table of the most relevant — and
+  often overlooked — open-source tools. Designed for researchers and engineers who
+  need to find the best repos beyond the first page of a GitHub search.
+author: zamalali
+license: Apache-2.0
+
+model:
+  preferred: groq:deepseek-r1-distill-llama-70b
+  fallback:
+    - openai:gpt-4o-mini
+  constraints:
+    temperature: 0.2
+
+skills:
+  - query-expansion
+  - hardware-spec-detection
+  - colbert-dense-retrieval
+  - cross-encoder-reranking
+  - dependency-analysis
+  - activity-analysis
+  - code-quality-analysis
+  - multi-factor-ranking
+
+runtime:
+  max_turns: 15
+  timeout: 300
+
+compliance:
+  risk_tier: standard
+  supervision:
+    human_in_the_loop: none
+    kill_switch: false
+  data_governance:
+    pii_handling: none
