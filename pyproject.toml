@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "deepgit"
+version = "4.0.0"
+description = "An agentic GitHub research engine that finds the right repo, not just keyword matches"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Zamal Ali" },
+]
+keywords = ["github", "search", "llm", "agent", "dspy", "mcp", "rag", "retrieval"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+]
+
+dependencies = [
+    "dspy>=2.5",
+    "deepagents>=0.0.2",
+    "langgraph>=0.2.60",
+    "langchain-core>=0.3",
+    "langchain-groq>=0.2",
+    "langchain-google-vertexai>=2.0",
+    "httpx>=0.27",
+    "anyio>=4.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "python-dotenv>=1.0",
+    "numpy>=1.25",
+    "mcp>=1.2,<2",
+]
+
+[project.optional-dependencies]
+# Persistent CPU semantic recall (LanceDB + fastembed). Optional: the pipeline
+# degrades gracefully to keyword + topic search when these are absent.
+semantic = [
+    "lancedb>=0.5",
+    "fastembed>=0.3",
+    "truststore>=0.8",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+deepgit = "deepgit.__main__:main"
+deepgit-mcp = "deepgit.mcp_server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/deepgit"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_return_any = true
+
+[tool.pytest.ini_options]
+testpaths = ["bench"]
+asyncio_mode = "auto"

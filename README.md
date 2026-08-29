@@ -2,178 +2,223 @@
   <img src="https://img.icons8.com/?size=100&id=118557&format=png&color=000000" width="72" style="vertical-align: middle;"/> DeepGit
 </h1>
 
-
 <p align="center">
-  <img src="assets/workflow.png" alt="Langgraph Workflow Diagram" style="max-width: 800px; width: 100%; height: auto;" />
+  <b><i>Find gold in the GitHub haystack.</i></b>
 </p>
 
-### DeepGit 2.0 🤯 — now **hardware‑aware** & **ColBERT‑powered**
-
-## DeepGit
-
-**DeepGit** is an advanced, Langgraph-based agentic workflow designed to perform deep research across GitHub repositories. It intelligently searches, analyzes, and ranks repositories based on user intent—even uncovering less-known but highly relevant tools. DeepGit infuses hybrid dense retrieval with advanced cross-encoder re-ranking and comprehensive activity analysis into a unified, open-source platform for intelligent repository discovery
-
----
-### Try out the Lite version here 🧑‍🎓
-
-DeepGit-lite is a lightweight version of DeepGit running on zero GPU on Hugging Face Space [here.](https://huggingface.co/spaces/zamal/DeepGit) <br>
-It may not perform as well as the full version, but it's great for a quick first-hand preview.
-
----
-
-
-The latest release makes it even **deeper, smarter, and faster**:
-
-| New feature | What it gives you |
-|-------------|------------------|
-| **⚛️ Multi‑dimensional ColBERT v2 embeddings** | Fine‑grained token‑level similarity for nuanced matches that single‑vector embeddings miss. |
-| **🔩 Smart Hardware Filter** | Tell DeepGit your device specs — CPU-only, low RAM, or mobile. It filters out repos that won’t run smoothly, so you only see ones that fit your setup. |
-
-DeepGit still unifies hybrid dense retrieval, cross‑encoder re‑ranking, activity & quality analysis—but now every step is both *smarter* and *leaner*.
-
----
-
-## ⚙️ How It Works — Agentic Workflow *v2*
-
-When the user submits a query, the **DeepGit Orchestrator Agent** triggers a relay of expert tools:
-
-1. **Query Expansion**  
-   An LLM turns your natural‑language question into high‑signal GitHub tags for precise searching.
-
-2. **Hardware Spec Detector**  
-   The same pass infers your wording for hints like “GPU‑poor”, “low‑memory”, or “mobile‑only” and records the constraint.
-
-3. **ColBERT‑v2 Semantic Retriever**  
-   Every README & doc block is embedded with multi‑dimensional token vectors; MaxSim scoring surfaces nuanced matches.
-
-4. **Cross‑Encoder Re‑ranker**  
-   A lightweight BERT (`MiniLM‑L‑6‑v2`) re‑orders the top K results for passage‑level accuracy.
-
-5. **Hardware‑aware Dependency Filter**  
-   The reasoning engine inspects each repo’s `requirements.txt` / `pyproject.toml` and discards any that can’t run on your declared hardware.
-
-6. **Community & Code Insight**  
-   Collects stars, forks, issue cadence, commit history, plus quick code‑quality metrics.
-
-7. **Multi‑factor Ranking & Delivery**  
-   Merges all scores into one ranking and serves a clean table with links, similarity %, and “Runs on cpu‑only” badges where relevant.
-
----
-
-
-## 🚀 Goals
-
-- **Uncover Hidden Gems:**  
-  Surface powerful but under-the-radar open-source tools. Now comes with hardware spec filter too.
-
-- **Empower Research:**  
-  Build an intelligent discovery layer over GitHub tailored for research-focused developers.
-
-- **Promote Open Innovation:**  
-  Open-source the entire workflow to foster transparency and collaboration in research.
-
----
-
-## 🖥️ User Interface
-
-DeepGit provides an intuitive interface for exploring repository recommendations. The main page where users enter raw natural language query. This is the primary interaction point for initiating deep semantic searches.
-
 <p align="center">
-  <img src="assets/dashboard.png" alt="DeepGit Dashboard" style="max-width: 800px; width: 100%; height: auto;" />
+  <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-blue.svg">
+  <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-green.svg">
+  <img alt="MCP" src="https://img.shields.io/badge/MCP-ready-8A2BE2.svg">
+  <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
+  <a href="https://github.com/zamalali/DeepGit"><img alt="GitHub stars" src="https://img.shields.io/github/stars/zamalali/DeepGit?style=social"></a>
 </p>
 
-*Output:* Showcases the tabulated results with clickable links and different threshold scores, making it easy to compare and understand the ranking criteria.
+**DeepGit** is an agentic research engine for GitHub. Instead of collapsing your
+question into a handful of keywords, it keeps the full intent, searches across
+keyword, topic, and semantic angles, judges every candidate on real evidence, and
+reads the actual source of the close calls before it answers. You get the repo you
+actually meant, including the hidden gems a plain search would bury.
 
-
-<p align="center">
-  <img src="assets/output.png" alt="DeepGit App UI" style="max-width: 800px; width: 100%; height: auto;" />
-</p>
-
----
-
-
-### 🔧 Recommended Environment
-
-- **Python:** 3.11+ (The repo has been tested on Python 3.11.x)
-- **pip:** 24.0+ (Ensure you have an up-to-date pip version)
+> **What's new:** a ground-up rebuild. A genuinely agentic pipeline that spends
+> effort only where it is uncertain (typically **2 LLM calls**, escalating to real
+> code-reading only for contested picks), persistent **semantic recall** that gets
+> smarter the more you use it, and a first-class **MCP server** so your AI
+> assistant can call DeepGit directly.
 
 ---
 
-### 👨‍🏭 Setup Instructions
+## Why DeepGit
 
-#### 1. Clone the Repository
+| | |
+|---|---|
+| **Intent-first, not keyword-first** | Your full request is preserved as hard requirements, soft preferences, and anti-patterns the judge checks against. No lossy tag reduction. |
+| **Agentic and adaptive** | A zero-cost confidence gate decides whether the fast answer is trustworthy. Only when it is not does DeepGit read real code, re-judge, and reflect. Effort matches uncertainty. |
+| **Semantic recall that compounds** | Every repo it sees is embedded into a local vector index (LanceDB + fastembed, CPU-only). Flagship repos whose descriptions omit the obvious words (e.g. `apache/kafka`) still surface, and recall improves with every search you run. |
+| **Real constraints, enforced** | Name a language (say "a C++ JSON library") or imply a hardware limit, and DeepGit treats it as a hard constraint. A C library never wins a C++ query, and a GPU-only tool never tops a plain "fast X" ask. |
+| **MCP-native** | One command turns DeepGit into an MCP server for Claude Desktop, Cursor, or VS Code. [Jump to setup](#use-deepgit-as-an-mcp-server) |
+| **Finds hidden gems** | Ranking is by genuine fit, not stars. A small, well-matched repo can and does win. |
+
+---
+
+## Quickstart
+
 ```bash
 git clone https://github.com/zamalali/DeepGit.git
 cd DeepGit
+python -m venv venv && source venv/bin/activate    # Windows: venv\Scripts\activate
+pip install -e ".[semantic]"                        # the semantic extra is optional but recommended
+
+export GITHUB_API_KEY=ghp_xxx                        # a PAT with public-repo read access
 ```
 
-#### 2. Create a Virtual Environment (Recommended)
-```bash
-python3 -m venv venv
-source venv/bin/activate   # On Windows: venv\Scripts\activate
-```
-
-#### 3. Upgrade pip (Optional but Recommended)
-```bash
-pip install --upgrade pip
-```
-
-#### 4. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-#### 5. Configure LLM Provider
-
-DeepGit supports multiple LLM providers. Set the `LLM_PROVIDER` environment variable in your `.env` file:
-
-| Provider | Env Var | Default Model | Notes |
-|----------|---------|---------------|-------|
-| **Groq** (default) | `GROQ_API_KEY` | `deepseek-r1-distill-llama-70b` | Free tier available |
-| **[MiniMax](https://www.minimaxi.com)** | `MINIMAX_API_KEY` | `MiniMax-M3` | 512K context, OpenAI-compatible |
+Search from the terminal:
 
 ```bash
-# Option A: Groq (default — no extra config needed)
-LLM_PROVIDER=groq
-GROQ_API_KEY=your_groq_api_key
-
-# Option B: MiniMax
-LLM_PROVIDER=minimax
-MINIMAX_API_KEY=your_minimax_api_key
-# LLM_MODEL=MiniMax-M3            # optional: override default model
+deepgit search "a fast, embeddable key-value store in Go"
 ```
 
-> **Tip:** If `LLM_PROVIDER` is not set, DeepGit auto-detects the provider from available API keys.
+Or from Python:
 
-#### 6. Running DeepGit via App
+```python
+from deepgit import search, search_structured
 
-To run DeepGit locally, simply execute:
+# Markdown report
+print(search("type-safe form validation for React with great TypeScript support"))
 
-```bash
-python app.py
+# Structured result you can program against
+result = search_structured("a library to parse and diff PDFs in Python")
+print(result.top.repo, result.top.fit_score)   # e.g. "pymupdf/PyMuPDF" 0.92
 ```
-
-
-### 🛠️ Troubleshooting
-
-- **Python Version:** Use Python 3.11 or higher as the repo has been tested on Python 3.11.x.
-- **pip Version:** Make sure you’re running pip 24.0 or later.
-- **Dependency Issues:** If you encounter any, try reinstalling in a new virtual environment.
-
 
 ---
 
-### 🛠️ Running DeepGit
+## How it works
 
-For a detailed documentation on using DeepGit, Check out [here](docs).
+DeepGit is an adaptive agent, not a fixed pipeline. It does the cheap thing first
+and only escalates when the evidence is genuinely contested.
 
-DeepGit leverages Langgraph for orchestration. To launch the Langsmith dashboard and start the workflow, simply run:
+1. **Understand the intent.** One LLM call turns your request into a plan: search angles, GitHub topics, hard *must-haves*, soft *nice-to-haves*, and *anti-patterns*.
+2. **Gather widely (0 tokens).** Batched GitHub GraphQL search across keyword queries **and** star-sorted topic sweeps, so flagship repos that keyword search misses still show up.
+3. **Semantic recall (0 tokens).** Everything seen is upserted into a local vector index, and near-neighbours from the accumulated corpus are pulled in. Recall compounds across every search.
+4. **Prefilter on free signals.** Activity, health, license, tests/CI, and relevance narrow the field to a shortlist at zero LLM cost.
+5. **Judge the shortlist (1 LLM call).** One batched, evidence-grounded ranking over compact cards (README + signals), enforcing the language and hardware hard constraints.
+6. **Escalate only if uncertain.** A confidence gate decides. If the top picks are contested, DeepGit reads their **real source, tests, and manifests**, re-judges from that code, and a skeptical **reflection critic** reviews the final order.
+
+Typical query: **2 LLM calls**. Hard query: it spends more, because it needs to.
+
+---
+
+## Ways to run
+
+| Command | What it does |
+|---|---|
+| `deepgit search "..."` | One-off search from the terminal |
+| `deepgit mcp` | Run the MCP server (see below) |
+| `from deepgit import search` | Use it as a library |
+
+---
+
+## Benchmarks
+
+DeepGit ships a reproducible benchmark suite under [`bench/`](bench). The numbers
+below are the held-out set: 12 unseen queries with the adaptive controller on.
+
+| Metric | Value |
+|---|---|
+| Hit@1 | 75% |
+| Hit@3 | 92% |
+| MRR | 0.833 |
+| Wrong pick at #1 (lower is better) | 0% |
+| Avg LLM calls per query | 2.0 |
+
+Run it yourself:
 
 ```bash
-langgraph dev
+python -m bench.run_bench --heldout      # held-out set (unseen queries)
+python -m bench.run_bench                # core set
+python -m bench.run_bench --edge         # robustness / edge cases
 ```
-This command opens the Langsmith dashboard where you can enter your raw queries in a JSON snippet and monitor the entire agentic workflow.
 
+Each run writes a full per-case report to `_bench_report.md`.
 
-### DeepGit on Docker
-For instructions on using Docker with DeepGit, please refer to our [Docker Documentation](docs/docker.md).
+---
+
+## Installation and setup
+
+**Requirements:** Python 3.11+ and a GitHub token.
+
+```bash
+git clone https://github.com/zamalali/DeepGit.git
+cd DeepGit
+python -m venv venv && source venv/bin/activate    # Windows: venv\Scripts\activate
+pip install -e ".[semantic]"
+```
+
+Configure your GitHub token and an LLM provider via a `.env` file (or environment
+variables):
+
+```bash
+GITHUB_API_KEY=ghp_xxx
+
+# Pick one LLM provider:
+LLM_PROVIDER=groq            # groq | openai | anthropic | vertex_ai
+GROQ_API_KEY=...
+# For Vertex AI instead: set VERTEX_PROJECT and GOOGLE_APPLICATION_CREDENTIALS
+```
+
+> The `[semantic]` extra (LanceDB + fastembed) is optional. Without it DeepGit still
+> runs on keyword + topic search. With it you get compounding semantic recall.
+
+---
+
+## Use DeepGit as an MCP server
+
+DeepGit ships a first-class **[Model Context Protocol](https://modelcontextprotocol.io) server**, so you can call it directly from Claude Desktop, Cursor, VS Code, Windsurf, or any MCP-compatible client. Your assistant gets a repository-research superpower with zero glue code.
+
+### Tools exposed
+
+| Tool | Returns | Use it for |
+|---|---|---|
+| `check_setup()` | Config status JSON | **Call first.** Instant check that your token, LLM creds, and semantic layer are wired up (runs no search). |
+| `find_repositories(intent, limit=5)` | Ranked Markdown report | Everyday "find me the best repo for X". Fast, reads code only when uncertain. |
+| `find_repositories_json(intent, limit=8)` | Structured JSON (repo, url, fit_score, verdict, why, risks + telemetry) | Programmatic use and building on top of the results. |
+| `deep_research(intent)` | Markdown report | High-stakes comparisons. Always reads real code and reflects. |
+
+### Install
+
+```bash
+pip install -e .            # installs the `deepgit-mcp` entry point
+# optional: persistent semantic recall (LanceDB + fastembed)
+pip install -e ".[semantic]"
+```
+
+Set a GitHub token (a classic or fine-grained PAT with public-repo read access):
+
+```bash
+export GITHUB_API_KEY=ghp_xxx        # Windows PowerShell: $env:GITHUB_API_KEY="ghp_xxx"
+```
+
+### Run it
+
+```bash
+deepgit-mcp                          # stdio transport (for local clients)
+# or over HTTP:
+MCP_TRANSPORT=streamable-http PORT=8080 deepgit-mcp
+# equivalently:
+deepgit mcp --transport streamable-http --port 8080
+```
+
+### Wire it into a client
+
+Add DeepGit to your client's MCP config (example for Claude Desktop,
+`claude_desktop_config.json`, or VS Code / Cursor `mcp.json`):
+
+```jsonc
+{
+  "mcpServers": {
+    "deepgit": {
+      "command": "deepgit-mcp",
+      "env": {
+        "GITHUB_API_KEY": "ghp_xxx"
+      }
+    }
+  }
+}
+```
+
+That is it. Ask your assistant *"use DeepGit to find a high-performance message
+broker for pub/sub in Go"* and it will call the tool and return a ranked,
+evidence-backed answer.
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome. If DeepGit surfaced the wrong repo for a
+query, that is a great bug report. The query and the expected repo are exactly what
+make the benchmark stronger.
+
+## License
+
+Released under the [MIT License](LICENSE).

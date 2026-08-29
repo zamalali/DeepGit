@@ -1,0 +1,25 @@
+# Secrets and local env
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Local caches
+.deepgit/
+node_modules/
+
+# Scratch / local dev artifacts (not part of the package)
+/_*.py
+/_*.md
+/*.bak
+/DEEPGIT-REVOLUTION-PLAN.md
+/Dockerfile.v3
+/langgraph_v3.json
+
+

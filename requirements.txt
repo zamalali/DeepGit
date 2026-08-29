@@ -1,15 +1,20 @@
-toml>=0.10.2
-requests==2.32.3
-numpy==1.25.2
-python-dotenv==1.0.1
-sentence-transformers==3.4.1
-faiss-cpu==1.9.0.post1
-pydantic==2.10.6
-httpx==0.27.2
-gradio==5.23.1
-langgraph==0.2.62
-langchain_groq==0.2.4
-langchain_openai==0.3.12
-langchain_core>=0.3.23,<0.4
-rank_bm25==0.2.2
-langgraph-cli==0.1.79
+# DeepGit v4 runtime dependencies.
+# Prefer: pip install -e ".[semantic]"  (uses pyproject.toml)
+dspy>=2.5
+deepagents>=0.0.2
+langgraph>=0.2.60
+langchain-core>=0.3
+langchain-groq>=0.2
+langchain-google-vertexai>=2.0
+httpx>=0.27
+anyio>=4.0
+pydantic>=2.0
+pydantic-settings>=2.0
+python-dotenv>=1.0
+numpy>=1.25
+mcp>=1.2,<2
+
+# Optional persistent semantic recall (or: pip install "deepgit[semantic]")
+# lancedb>=0.5
+# fastembed>=0.3
+# truststore>=0.8
