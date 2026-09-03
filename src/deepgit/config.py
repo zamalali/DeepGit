@@ -47,6 +47,12 @@ class DeepGitSettings(BaseSettings):
     activity_analysis_concurrency: int = 10
     max_doc_chars: int = 50_000
 
+    # --- Optional You.com web-search gather lane (opt-in via API key) ---
+    youcom_api_key: str = Field("", alias="YDC_API_KEY")
+    # None = enabled when the key is present; False = hard opt-out.
+    youcom_search: bool | None = Field(None, alias="DEEPGIT_YOUCOM_SEARCH")
+    youcom_max_queries: int = Field(2, alias="DEEPGIT_YOUCOM_MAX_QUERIES")
+
     # --- Ranking weights ---
     w_cross_encoder: float = 0.30
     w_semantic: float = 0.20

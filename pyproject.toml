@@ -73,5 +73,5 @@ strict = false
 warn_return_any = true
 
 [tool.pytest.ini_options]
-testpaths = ["bench"]
+testpaths = ["bench", "tests"]
 asyncio_mode = "auto"
