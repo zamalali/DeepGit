@@ -199,6 +199,30 @@ Pass your LLM provider credentials the same way (for example `-e LLM_PROVIDER=gr
 
 ---
 
+## Optional: You.com web-search gather lane
+
+DeepGit's keyword and star-sorted topic queries both hit the GitHub search
+index, so they share its blind spot: repos that keyword search buries, or whose
+descriptions omit the terms a developer would actually use. Setting a
+You.com API key enables an additional gather angle that searches the open web —
+awesome lists, "X vs Y" comparisons, blog posts — extracts any GitHub repo it
+mentions, and hydrates those repos through the GitHub API so they are judged on
+the same evidence (metadata, README, root tree) as every other candidate.
+
+**Off by default.** Without a key, nothing changes; with one, the lane can be
+disabled or tuned:
+
+```bash
+export YDC_API_KEY=***                   # https://you.com/platform/api-keys
+# DEEPGIT_YOUCOM_SEARCH=0               # disable the lane even with a key
+# DEEPGIT_YOUCOM_MAX_QUERIES=2          # web queries per search
+```
+
+The lane adds zero LLM calls and fails silently to GitHub-only results if the
+web search errors or times out.
+
+---
+
 ## Use DeepGit as an MCP server
 
 DeepGit ships a first-class **[Model Context Protocol](https://modelcontextprotocol.io) server**, so you can call it directly from Claude Desktop, Cursor, VS Code, Windsurf, or any MCP-compatible client. Your assistant gets a repository-research superpower with zero glue code.

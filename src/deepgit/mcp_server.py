@@ -179,6 +179,21 @@ def check_setup() -> dict:
         pass
 
     ready = github_ok and llm["configured"]
+    youcom = {
+        "enabled": False,
+        "hint": "Optional: set YDC_API_KEY to also gather candidates from You.com web search.",
+    }
+    try:
+        from deepgit.search.youdotcom import youcom_enabled
+
+        if youcom_enabled():
+            youcom = {
+                "enabled": True,
+                "hint": "Gathering extra candidates from You.com web search. "
+                "Disable with DEEPGIT_YOUCOM_SEARCH=0.",
+            }
+    except Exception:  # pragma: no cover - defensive
+        pass
     return {
         "deepgit_version": __version__,
         "ready": ready,
@@ -187,6 +202,7 @@ def check_setup() -> dict:
             "hint": "" if github_ok else "Set GITHUB_API_KEY to a GitHub PAT with public-repo read access.",
         },
         "llm": llm,
+        "youcom_web_search": youcom,
         "semantic_recall": {
             **semantic,
             "hint": "" if semantic["installed"] else "Optional: pip install 'deepgit[semantic]' for cross-query recall.",

@@ -5,6 +5,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 
+from deepgit.config import get_settings
 from deepgit.control import (
     apply_escalation,
     assess_confidence,
@@ -242,6 +243,33 @@ def search_structured(
                 by_name.setdefault(r.name_with_owner, r)
             recs = list(by_name.values())
             logger.info("[pipeline] after retry: %d candidates", len(recs))
+
+    # 2a) Optional You.com web-search lane (opt-in via YDC_API_KEY, 0 LLM
+    #     tokens). Keyword and topic queries both hit the GitHub search index;
+    #     a general web search additionally surfaces repos from where they
+    #     live in discourse — awesome lists, comparisons, blog posts — and
+    #     hydrates them through GraphQL so they are judged on the same
+    #     evidence as the other angles. No-op without a key; failures yield
+    #     no candidates and the pipeline continues unchanged.
+    from deepgit.search.youdotcom import gather_web_records, youcom_enabled
+
+    if youcom_enabled() and queries:
+        s = get_settings()
+        web_queries = [intent, *keyword_queries][: max(1, s.youcom_max_queries)]
+        web_recs = asyncio.run(gather_web_records(web_queries))
+        if web_recs:
+            have = {r.name_with_owner.lower() for r in recs}
+            fresh = [r for r in web_recs if r.name_with_owner.lower() not in have]
+            recs.extend(fresh)
+            logger.info(
+                "[pipeline] you.com web search: +%d new candidate(s): %s",
+                len(fresh),
+                ", ".join(r.name_with_owner for r in fresh[:6]),
+            )
+            trace.append(
+                f"Optional You.com web search added **{len(fresh)}** candidate(s) "
+                f"surfaced outside GitHub's search index."
+            )
 
     # 2b) Semantic layer: persist everything we gathered into the local vector
     #     index, then pull in semantically-near repos from the accumulated corpus
